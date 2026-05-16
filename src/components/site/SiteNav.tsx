@@ -11,6 +11,7 @@ export function SiteNav() {
           <span className="font-mono text-lg font-bold tracking-tighter text-primary">D'POTO_</span>
         </Link>
         <div className="hidden gap-8 font-mono text-[11px] uppercase tracking-[0.2em] text-primary/60 md:flex">
+          <Link to="/studio" className="transition-colors hover:text-primary">Studio</Link>
           <Link to="/kiosk" className="transition-colors hover:text-primary">Kiosk_Mode</Link>
           <Link to="/pricing" className="transition-colors hover:text-primary">Pricing</Link>
           <span className="flex items-center gap-2 text-primary/40">
