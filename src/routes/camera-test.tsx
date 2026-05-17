@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
-import { AlertCircle, RefreshCw, Camera, ArrowRight, CheckCircle2 } from "lucide-react";
+import { AlertCircle, RefreshCw, Camera, ArrowRight, CheckCircle2, RotateCcw } from "lucide-react";
 
 type FacingMode = "user" | "environment";
 
