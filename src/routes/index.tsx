@@ -98,6 +98,7 @@ function Landing() {
                 desc: "Single shots or classic 4-frame strips. Front, back, webcam, DSLR — any camera works.",
                 img: servicePhoto,
                 alt: "Printed photo strips on a dark surface",
+                href: "/camera-test" as const,
               },
               {
                 tag: "02 / Edit",
@@ -105,6 +106,7 @@ function Landing() {
                 desc: "Drop in your logo, slide the hue, drag the caption. Frames adapt in real time.",
                 img: serviceFrame,
                 alt: "Frame editor UI with neon sliders",
+                href: "/studio" as const,
               },
               {
                 tag: "03 / Print",
@@ -112,29 +114,38 @@ function Landing() {
                 desc: "Print 2R, 4R, A5, A6 or square at any kiosk. Pay per print. No subscription.",
                 img: servicePrint,
                 alt: "Thermal printer dispensing a fresh print",
+                href: undefined,
               },
-            ].map((s) => (
-              <article
-                key={s.title}
-                className="group relative overflow-hidden border border-primary/10 bg-background/60 p-6 transition-colors hover:border-primary/50"
-              >
-                <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-                  {s.tag}
-                </div>
-                <h3 className="mb-3 text-2xl font-bold tracking-tight">{s.title}</h3>
-                <p className="mb-6 text-sm text-foreground/60">{s.desc}</p>
-                <div className="relative aspect-square w-full overflow-hidden border border-primary/10 bg-muted">
-                  <img
-                    src={s.img}
-                    alt={s.alt}
-                    loading="lazy"
-                    width={768}
-                    height={768}
-                    className="size-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-                  />
-                </div>
-              </article>
-            ))}
+            ].map((s) => {
+              const card = (
+                <article
+                  className="group relative h-full overflow-hidden border border-primary/10 bg-background/60 p-6 transition-colors hover:border-primary/50"
+                >
+                  <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
+                    {s.tag}
+                  </div>
+                  <h3 className="mb-3 text-2xl font-bold tracking-tight">{s.title}</h3>
+                  <p className="mb-6 text-sm text-foreground/60">{s.desc}</p>
+                  <div className="relative aspect-square w-full overflow-hidden border border-primary/10 bg-muted">
+                    <img
+                      src={s.img}
+                      alt={s.alt}
+                      loading="lazy"
+                      width={768}
+                      height={768}
+                      className="size-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                    />
+                  </div>
+                </article>
+              );
+              return s.href ? (
+                <Link key={s.title} to={s.href} className="block">
+                  {card}
+                </Link>
+              ) : (
+                <div key={s.title}>{card}</div>
+              );
+            })}
           </div>
         </div>
       </section>
