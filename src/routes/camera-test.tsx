@@ -87,12 +87,19 @@ function PermissionHelp() {
 }
 
 function CameraTestPage() {
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<FacingMode>("environment");
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
+
+  function useCaptureInStudio() {
+    if (!capturedUrl) return;
+    setPendingCapture(capturedUrl);
+    navigate({ to: "/studio" });
+  }
 
   async function startCamera() {
     setStatus("starting");
