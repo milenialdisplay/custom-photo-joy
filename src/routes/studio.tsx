@@ -384,7 +384,7 @@ function StudioPage() {
 
         {/* CONTROLS */}
         <aside className="space-y-5">
-          <Panel title="01 · Ratio & Layout">
+          <Panel title="01 · Ratio & Layout" mobileActive={activeMobilePanel === "layout"}>
             <div className="grid grid-cols-3 gap-2">
               {RATIOS.map((r) => (
                 <button
@@ -415,7 +415,7 @@ function StudioPage() {
             </div>
           </Panel>
 
-          <Panel title="02 · Frame">
+          <Panel title="02 · Frame" mobileActive={activeMobilePanel === "frame"}>
             <div className="grid grid-cols-3 gap-2">
               {framesForRatio.map((f) => (
                 <button
@@ -442,7 +442,7 @@ function StudioPage() {
             </label>
           </Panel>
 
-          <Panel title="03 · Pattern">
+          <Panel title="03 · Pattern" mobileActive={activeMobilePanel === "pattern"}>
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => setPatternId(null)}
@@ -476,7 +476,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="04 · Logo">
+          <Panel title="04 · Logo" mobileActive={activeMobilePanel === "logo"}>
             <label className="block cursor-pointer rounded border border-dashed border-primary/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70 hover:bg-primary/5">
               <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickLogo(e.target.files?.[0] ?? null)} />
               {logoUrl ? "Replace_Logo" : "Upload_Logo"}
@@ -491,7 +491,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="05 · Caption">
+          <Panel title="05 · Caption" mobileActive={activeMobilePanel === "caption"}>
             <input
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
@@ -527,7 +527,7 @@ function StudioPage() {
                       onChange={(e) => setCaptionBg(e.target.value)}
                       className="h-8 w-12 cursor-pointer rounded border border-primary/20 bg-background"
                     />
-                    <span className="font-mono text-[10px] text-primary/60">drag box on preview</span>
+                    <span className="font-mono text-[10px] text-primary/60">drag box + drag corner on preview</span>
                   </div>
                   <Slider label={`Fill ${(captionBgOpacity * 100).toFixed(0)}%`} min={0} max={100} value={captionBgOpacity * 100} onChange={(v) => setCaptionBgOpacity(v / 100)} />
                 </div>
@@ -535,7 +535,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="06 · Export">
+          <Panel title="06 · Export" mobileActive={activeMobilePanel === "export"}>
             <select
               value={presetId}
               onChange={(e) => setPresetId(e.target.value as OutputPresetId)}
