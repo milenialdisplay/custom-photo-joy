@@ -298,6 +298,7 @@ function StudioPage() {
                     onRectChange={(r) => setSlotRect(i, r)}
                     onPick={(f) => setSlotPhoto(i, f)}
                     onClear={() => clearSlotPhoto(i)}
+                    onCamera={() => setCameraSlot(i)}
                   />
                 ))}
 
