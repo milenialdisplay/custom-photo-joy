@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as KioskRouteImport } from './routes/kiosk'
+import { Route as CameraTestRouteImport } from './routes/camera-test'
 import { Route as IndexRouteImport } from './routes/index'
 
 const StudioRoute = StudioRouteImport.update({
@@ -29,6 +30,11 @@ const KioskRoute = KioskRouteImport.update({
   path: '/kiosk',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CameraTestRoute = CameraTestRouteImport.update({
+  id: '/camera-test',
+  path: '/camera-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/camera-test': typeof CameraTestRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/camera-test': typeof CameraTestRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
   '/studio': typeof StudioRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/camera-test': typeof CameraTestRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/kiosk' | '/pricing' | '/studio'
+  fullPaths: '/' | '/camera-test' | '/kiosk' | '/pricing' | '/studio'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/kiosk' | '/pricing' | '/studio'
-  id: '__root__' | '/' | '/kiosk' | '/pricing' | '/studio'
+  to: '/' | '/camera-test' | '/kiosk' | '/pricing' | '/studio'
+  id: '__root__' | '/' | '/camera-test' | '/kiosk' | '/pricing' | '/studio'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CameraTestRoute: typeof CameraTestRoute
   KioskRoute: typeof KioskRoute
   PricingRoute: typeof PricingRoute
   StudioRoute: typeof StudioRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KioskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/camera-test': {
+      id: '/camera-test'
+      path: '/camera-test'
+      fullPath: '/camera-test'
+      preLoaderRoute: typeof CameraTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CameraTestRoute: CameraTestRoute,
   KioskRoute: KioskRoute,
   PricingRoute: PricingRoute,
   StudioRoute: StudioRoute,

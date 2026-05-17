@@ -33,7 +33,9 @@ function Landing() {
             </p>
             <div className="flex flex-wrap gap-4">
               <NeonButton size="lg" glow>Start Free Trial</NeonButton>
-              <NeonButton size="lg" variant="ghost">Try a Demo Booth</NeonButton>
+              <Link to="/camera-test">
+                <NeonButton size="lg" variant="ghost">Try a Demo Booth</NeonButton>
+              </Link>
             </div>
             <div className="mt-10 flex items-center gap-6 font-mono text-[10px] uppercase tracking-[0.25em] text-primary/40">
               <span>7-day trial</span>
