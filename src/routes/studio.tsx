@@ -594,6 +594,16 @@ function PhotoSlot({
   onClear: () => void;
 }) {
   const ctl = useRectController(stageRef, slot.rect, onRectChange, { minW, minH, snap: 0.008 });
+  const edgeHandle = (edge: "n" | "s" | "e" | "w", cls: string, label: string) => (
+    <span
+      onPointerDown={ctl.onPointerDown(edge)}
+      onPointerMove={ctl.onPointerMove}
+      onPointerUp={ctl.onPointerUp}
+      className={`absolute z-10 flex items-center justify-center bg-primary/80 font-mono text-[8px] font-bold uppercase tracking-wider text-primary-foreground shadow-[0_0_6px_currentColor] hover:bg-primary ${cls}`}
+    >
+      {label}
+    </span>
+  );
   return (
     <div
       className="absolute touch-none border-2 border-dashed border-primary/70"
@@ -613,7 +623,7 @@ function PhotoSlot({
           <button
             onClick={(e) => { e.stopPropagation(); onClear(); }}
             onPointerDown={(e) => e.stopPropagation()}
-            className="absolute top-1 right-1 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] uppercase text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            className="absolute top-1 right-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] uppercase text-destructive hover:bg-destructive hover:text-destructive-foreground"
           >
             ×
           </button>
@@ -624,17 +634,29 @@ function PhotoSlot({
           onPointerDown={(e) => e.stopPropagation()}
         >
           <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
-          <span>+ photo {index + 1}</span>
+          <span className="text-center leading-tight">
+            + photo {index + 1}
+            <br />
+            <span className="text-[8px] text-primary/40">drag center · drag edges to resize</span>
+          </span>
         </label>
       )}
-      <span className="absolute top-1 left-1 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] text-primary/80">
+      <span className="absolute top-1 left-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] text-primary/80">
         {index + 1}
       </span>
+
+      {/* edge resize handles with visible DRAG labels */}
+      {edgeHandle("n", "left-1/2 -translate-x-1/2 -top-2.5 h-5 px-2 cursor-ns-resize rounded-sm", "↕ DRAG")}
+      {edgeHandle("s", "left-1/2 -translate-x-1/2 -bottom-2.5 h-5 px-2 cursor-ns-resize rounded-sm", "↕ DRAG")}
+      {edgeHandle("w", "top-1/2 -translate-y-1/2 -left-2.5 w-5 py-2 cursor-ew-resize rounded-sm [writing-mode:vertical-rl]", "↔ DRAG")}
+      {edgeHandle("e", "top-1/2 -translate-y-1/2 -right-2.5 w-5 py-2 cursor-ew-resize rounded-sm [writing-mode:vertical-rl]", "↔ DRAG")}
+
+      {/* corner resize */}
       <span
-        onPointerDown={ctl.onPointerDown("resize")}
+        onPointerDown={ctl.onPointerDown("se")}
         onPointerMove={ctl.onPointerMove}
         onPointerUp={ctl.onPointerUp}
-        className="absolute -bottom-1.5 -right-1.5 size-3 cursor-nwse-resize bg-primary shadow-[0_0_8px_currentColor]"
+        className="absolute z-10 -bottom-1.5 -right-1.5 size-4 cursor-nwse-resize rounded-sm bg-primary shadow-[0_0_8px_currentColor]"
       />
     </div>
   );
