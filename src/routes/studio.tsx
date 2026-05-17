@@ -384,6 +384,8 @@ function StudioPage() {
               frames={framesForRatio}
               activeFrameId={frameId}
               onPickFrame={setFrameId}
+              onPickCustomFrame={onPickCustomFrame}
+              hasCustom={!!customFrame && customFrame.ratio === ratio}
               hue={frameHue}
               sat={frameSat}
               onPickTint={(h, s) => {
