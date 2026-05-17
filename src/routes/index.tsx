@@ -138,12 +138,10 @@ function Landing() {
                   </div>
                 </article>
               );
-              return s.href ? (
+              return (
                 <Link key={s.title} to={s.href} className="block">
                   {card}
                 </Link>
-              ) : (
-                <div key={s.title}>{card}</div>
               );
             })}
           </div>
