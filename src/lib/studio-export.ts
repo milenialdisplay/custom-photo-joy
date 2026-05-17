@@ -1,4 +1,5 @@
 import { PRESET_FRAMES, WATERMARK_HEIGHT_RATIO } from "@/lib/frames";
+import brandWhiteUrl from "@/assets/brand/dpotopoto-white.png";
 import type { Frame } from "@/lib/frames";
 import type { Rect } from "@/components/studio/useDraggable";
 
@@ -160,6 +161,15 @@ export async function renderToCanvas(
     ctx.drawImage(logo, r.x * width, r.y * height, r.w * width, r.h * height);
     ctx.restore();
   }
+
+  // 6.5) bottom-left brand mark
+  const brand = await loadImage(brandWhiteUrl);
+  const brandWidth = width * 0.2;
+  const brandHeight = (brand.height / brand.width) * brandWidth;
+  ctx.save();
+  ctx.globalAlpha = 0.95;
+  ctx.drawImage(brand, width * 0.04, height - brandHeight - height * 0.05, brandWidth, brandHeight);
+  ctx.restore();
 
   // 7) trial watermark band
   if (state.trial) {

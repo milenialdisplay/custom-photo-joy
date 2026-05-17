@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
+import { BrandLogo } from "@/components/site/BrandLogo";
 import {
   PRESET_FRAMES,
   RATIOS,
@@ -35,6 +36,7 @@ const DEFAULT_CAPTION: Rect = { x: 0.1, y: 0.82, w: 0.8, h: 0.1 };
 const PATTERN_LOOKUP = (id: string) => PATTERNS.find((p) => p.id === id)?.src;
 
 function StudioPage() {
+  const [activeMobilePanel, setActiveMobilePanel] = useState<"layout" | "frame" | "pattern" | "logo" | "caption" | "export">("layout");
   // ratio + layout
   const [ratio, setRatio] = useState<Ratio>("1:1");
   const [slotCount, setSlotCount] = useState<SlotCount>(1);
@@ -236,7 +238,7 @@ function StudioPage() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[1fr_380px]">
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:px-6 md:py-8 lg:grid-cols-[1fr_380px]">
         {/* PREVIEW */}
         <div>
           <div className="metal-panel rounded p-4">
@@ -341,6 +343,10 @@ function StudioPage() {
                     DPOTOPOTO.COM — TRIAL
                   </div>
                 )}
+
+                <div className="pointer-events-none absolute bottom-[6.5%] left-[4%] z-10 opacity-95">
+                  <BrandLogo variant="dark" className="text-sm md:text-base" />
+                </div>
               </div>
             </div>
 
@@ -353,12 +359,36 @@ function StudioPage() {
                 Reset_Layout
               </button>
             </div>
+
+            <div className="mt-4 lg:hidden">
+              <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary/55">quick_controls</div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                {[
+                  ["layout", "01 layout"],
+                  ["frame", "02 frame"],
+                  ["pattern", "03 pattern"],
+                  ["logo", "04 logo"],
+                  ["caption", "05 caption"],
+                  ["export", "06 export"],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveMobilePanel(key as typeof activeMobilePanel)}
+                    className={`rounded border px-2 py-2 font-mono text-[10px] uppercase tracking-[0.15em] transition-all ${
+                      activeMobilePanel === key ? "border-primary bg-primary/10 text-primary neon-glow" : "border-primary/15 text-primary/55"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* CONTROLS */}
         <aside className="space-y-5">
-          <Panel title="01 · Ratio & Layout">
+          <Panel title="01 · Ratio & Layout" mobileActive={activeMobilePanel === "layout"}>
             <div className="grid grid-cols-3 gap-2">
               {RATIOS.map((r) => (
                 <button
@@ -389,7 +419,7 @@ function StudioPage() {
             </div>
           </Panel>
 
-          <Panel title="02 · Frame">
+          <Panel title="02 · Frame" mobileActive={activeMobilePanel === "frame"}>
             <div className="grid grid-cols-3 gap-2">
               {framesForRatio.map((f) => (
                 <button
@@ -416,7 +446,7 @@ function StudioPage() {
             </label>
           </Panel>
 
-          <Panel title="03 · Pattern">
+          <Panel title="03 · Pattern" mobileActive={activeMobilePanel === "pattern"}>
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => setPatternId(null)}
@@ -450,7 +480,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="04 · Logo">
+          <Panel title="04 · Logo" mobileActive={activeMobilePanel === "logo"}>
             <label className="block cursor-pointer rounded border border-dashed border-primary/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70 hover:bg-primary/5">
               <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickLogo(e.target.files?.[0] ?? null)} />
               {logoUrl ? "Replace_Logo" : "Upload_Logo"}
@@ -465,7 +495,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="05 · Caption">
+          <Panel title="05 · Caption" mobileActive={activeMobilePanel === "caption"}>
             <input
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
@@ -501,7 +531,7 @@ function StudioPage() {
                       onChange={(e) => setCaptionBg(e.target.value)}
                       className="h-8 w-12 cursor-pointer rounded border border-primary/20 bg-background"
                     />
-                    <span className="font-mono text-[10px] text-primary/60">drag box on preview</span>
+                    <span className="font-mono text-[10px] text-primary/60">drag box + drag corner on preview</span>
                   </div>
                   <Slider label={`Fill ${(captionBgOpacity * 100).toFixed(0)}%`} min={0} max={100} value={captionBgOpacity * 100} onChange={(v) => setCaptionBgOpacity(v / 100)} />
                 </div>
@@ -509,7 +539,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="06 · Export">
+          <Panel title="06 · Export" mobileActive={activeMobilePanel === "export"}>
             <select
               value={presetId}
               onChange={(e) => setPresetId(e.target.value as OutputPresetId)}
@@ -551,9 +581,17 @@ function StudioPage() {
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({
+  title,
+  children,
+  mobileActive = true,
+}: {
+  title: string;
+  children: React.ReactNode;
+  mobileActive?: boolean;
+}) {
   return (
-    <section className="space-y-3 rounded border border-primary/15 bg-card/40 p-4">
+    <section className={`space-y-3 rounded border border-primary/15 bg-card/40 p-4 ${mobileActive ? "block" : "hidden lg:block"}`}>
       <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">{title}</div>
       {children}
     </section>
@@ -685,12 +723,22 @@ function DraggableBox({
       onPointerUp={ctl.onPointerUp}
     >
       {children}
+      {accent && (
+        <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-sm bg-secondary px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-secondary-foreground shadow-[0_0_8px_currentColor]">
+          drag
+        </span>
+      )}
       <span
         onPointerDown={ctl.onPointerDown("se")}
         onPointerMove={ctl.onPointerMove}
         onPointerUp={ctl.onPointerUp}
-        className={`absolute -bottom-1.5 -right-1.5 size-3 cursor-nwse-resize ${accent ? "bg-secondary" : "bg-primary"} shadow-[0_0_8px_currentColor]`}
+        className={`absolute -bottom-1.5 -right-1.5 z-10 size-4 cursor-nwse-resize ${accent ? "bg-secondary" : "bg-primary"} shadow-[0_0_8px_currentColor]`}
       />
+      {accent && (
+        <span className="absolute -bottom-7 right-0 rounded-sm bg-secondary px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-secondary-foreground shadow-[0_0_8px_currentColor]">
+          resize
+        </span>
+      )}
     </div>
   );
 }
