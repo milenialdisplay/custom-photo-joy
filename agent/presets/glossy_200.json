@@ -1,0 +1,9 @@
+{
+  "_comment": "Glossy 200gsm photo paper on HP M451. Slightly punchier saturation, mild shadow lift to keep skin warm.",
+  "gamma": 0.96,
+  "shadow_lift": 3,
+  "highlight_roll": 2,
+  "sat_boost": 8,
+  "warm_shift": 1,
+  "unsharp": "0x0.6+0.6+0.04"
+}
