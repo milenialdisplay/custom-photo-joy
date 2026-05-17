@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
 import { AlertCircle, RefreshCw, Camera, ArrowRight, CheckCircle2, RotateCcw } from "lucide-react";
+import { setPendingCapture } from "@/lib/pending-capture";
 
 type FacingMode = "user" | "environment";
 
