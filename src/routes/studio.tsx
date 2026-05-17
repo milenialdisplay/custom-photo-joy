@@ -580,6 +580,14 @@ function StudioPage() {
       </div>
 
       <SiteFooter />
+
+      <CameraCapture
+        open={cameraSlot !== null}
+        onClose={() => setCameraSlot(null)}
+        onCapture={(f) => {
+          if (cameraSlot !== null) setSlotPhoto(cameraSlot, f);
+        }}
+      />
     </div>
   );
 }
