@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
+import { BrandLogo } from "@/components/site/BrandLogo";
 import {
   PRESET_FRAMES,
   RATIOS,
@@ -35,6 +36,7 @@ const DEFAULT_CAPTION: Rect = { x: 0.1, y: 0.82, w: 0.8, h: 0.1 };
 const PATTERN_LOOKUP = (id: string) => PATTERNS.find((p) => p.id === id)?.src;
 
 function StudioPage() {
+  const [activeMobilePanel, setActiveMobilePanel] = useState<"layout" | "frame" | "pattern" | "logo" | "caption" | "export">("layout");
   // ratio + layout
   const [ratio, setRatio] = useState<Ratio>("1:1");
   const [slotCount, setSlotCount] = useState<SlotCount>(1);
