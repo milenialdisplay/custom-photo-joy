@@ -238,7 +238,7 @@ function StudioPage() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[1fr_380px]">
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:px-6 md:py-8 lg:grid-cols-[1fr_380px]">
         {/* PREVIEW */}
         <div>
           <div className="metal-panel rounded p-4">
@@ -354,6 +354,30 @@ function StudioPage() {
               >
                 Reset_Layout
               </button>
+            </div>
+
+            <div className="mt-4 lg:hidden">
+              <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary/55">quick_controls</div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                {[
+                  ["layout", "01 layout"],
+                  ["frame", "02 frame"],
+                  ["pattern", "03 pattern"],
+                  ["logo", "04 logo"],
+                  ["caption", "05 caption"],
+                  ["export", "06 export"],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveMobilePanel(key as typeof activeMobilePanel)}
+                    className={`rounded border px-2 py-2 font-mono text-[10px] uppercase tracking-[0.15em] transition-all ${
+                      activeMobilePanel === key ? "border-primary bg-primary/10 text-primary neon-glow" : "border-primary/15 text-primary/55"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
