@@ -379,6 +379,19 @@ function StudioPage() {
               </div>
             </div>
 
+            {/* Prominent frame quick-picker */}
+            <FrameStrip
+              frames={framesForRatio}
+              activeFrameId={frameId}
+              onPickFrame={setFrameId}
+              hue={frameHue}
+              sat={frameSat}
+              onPickTint={(h, s) => {
+                setFrameHue(h);
+                setFrameSat(s);
+              }}
+            />
+
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
               <span>drag slots · corner = resize · click slot to upload</span>
               <button
@@ -788,6 +801,115 @@ function DraggableBox({
           resize
         </span>
       )}
+    </div>
+  );
+}
+
+const TINT_PRESETS: { id: string; label: string; hue: number; sat: number; swatch: string }[] = [
+  { id: "none", label: "Plain", hue: 0, sat: 0, swatch: "transparent" },
+  { id: "mint", label: "Mint", hue: 150, sat: 60, swatch: "hsl(150, 60%, 50%)" },
+  { id: "pink", label: "Pink", hue: 330, sat: 70, swatch: "hsl(330, 70%, 55%)" },
+  { id: "sun", label: "Sun", hue: 45, sat: 75, swatch: "hsl(45, 75%, 55%)" },
+  { id: "sky", label: "Sky", hue: 200, sat: 65, swatch: "hsl(200, 65%, 55%)" },
+  { id: "violet", label: "Violet", hue: 270, sat: 60, swatch: "hsl(270, 60%, 55%)" },
+  { id: "fire", label: "Fire", hue: 15, sat: 80, swatch: "hsl(15, 80%, 55%)" },
+];
+
+function FrameStrip({
+  frames,
+  activeFrameId,
+  onPickFrame,
+  hue,
+  sat,
+  onPickTint,
+}: {
+  frames: Frame[];
+  activeFrameId: string;
+  onPickFrame: (id: string) => void;
+  hue: number;
+  sat: number;
+  onPickTint: (hue: number, sat: number) => void;
+}) {
+  const activeTintId = TINT_PRESETS.find((t) => t.hue === hue && t.sat === sat)?.id;
+
+  return (
+    <div className="mt-4 rounded border border-primary/20 bg-background/40 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/70">
+          frames · tap to preview
+        </div>
+        <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary/40">
+          {frames.length} frame{frames.length !== 1 ? "s" : ""} · 7 tints
+        </div>
+      </div>
+
+      {/* Frames row */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {frames.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => onPickFrame(f.id)}
+            className={`group relative shrink-0 overflow-hidden rounded border-2 transition-all ${
+              activeFrameId === f.id
+                ? "border-primary neon-glow scale-105"
+                : "border-primary/15 hover:border-primary/50"
+            }`}
+            style={{
+              width: 88,
+              aspectRatio: `${f.ratio.split(":")[0]} / ${f.ratio.split(":")[1]}`,
+            }}
+            title={f.name}
+          >
+            <img src={f.src} alt={f.name} className="absolute inset-0 size-full bg-muted object-cover" />
+            {sat > 0 && (
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background: `hsl(${hue}, ${sat}%, 50%)`,
+                  mixBlendMode: "multiply",
+                }}
+              />
+            )}
+            <span className="absolute inset-x-0 bottom-0 bg-background/85 px-1 py-0.5 text-center font-mono text-[8px] uppercase tracking-wider text-primary/80">
+              {f.kind === "custom" ? "CUSTOM" : f.ratio}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tint presets */}
+      <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
+        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-primary/50">
+          tint:
+        </span>
+        {TINT_PRESETS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => onPickTint(t.hue, t.sat)}
+            className={`group flex shrink-0 flex-col items-center gap-1 transition-transform hover:scale-110 ${
+              activeTintId === t.id ? "scale-110" : ""
+            }`}
+            title={t.label}
+          >
+            <span
+              className={`block size-7 rounded-full border-2 transition-all ${
+                activeTintId === t.id ? "border-primary neon-glow" : "border-primary/20"
+              }`}
+              style={{
+                background: t.id === "none" ? "transparent" : t.swatch,
+                backgroundImage:
+                  t.id === "none"
+                    ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%)"
+                    : undefined,
+                backgroundSize: t.id === "none" ? "8px 8px" : undefined,
+              }}
+            />
+            <span className="font-mono text-[8px] uppercase tracking-wider text-primary/60">
+              {t.label}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
