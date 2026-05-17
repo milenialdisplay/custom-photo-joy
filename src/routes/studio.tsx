@@ -723,12 +723,22 @@ function DraggableBox({
       onPointerUp={ctl.onPointerUp}
     >
       {children}
+      {accent && (
+        <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-sm bg-secondary px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-secondary-foreground shadow-[0_0_8px_currentColor]">
+          drag
+        </span>
+      )}
       <span
         onPointerDown={ctl.onPointerDown("se")}
         onPointerMove={ctl.onPointerMove}
         onPointerUp={ctl.onPointerUp}
-        className={`absolute -bottom-1.5 -right-1.5 size-3 cursor-nwse-resize ${accent ? "bg-secondary" : "bg-primary"} shadow-[0_0_8px_currentColor]`}
+        className={`absolute -bottom-1.5 -right-1.5 z-10 size-4 cursor-nwse-resize ${accent ? "bg-secondary" : "bg-primary"} shadow-[0_0_8px_currentColor]`}
       />
+      {accent && (
+        <span className="absolute -bottom-7 right-0 rounded-sm bg-secondary px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-secondary-foreground shadow-[0_0_8px_currentColor]">
+          resize
+        </span>
+      )}
     </div>
   );
 }
