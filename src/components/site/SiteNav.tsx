@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { BrandLogo } from "@/components/site/BrandLogo";
 
 export function SiteNav() {
   const [lang, setLang] = useState<"EN" | "ID">("EN");
@@ -8,7 +9,7 @@ export function SiteNav() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2">
           <span className="size-2.5 animate-blink rounded-full bg-primary shadow-[0_0_10px] shadow-primary" />
-          <span className="font-mono text-lg font-bold tracking-tighter text-primary">D'POTO_</span>
+          <BrandLogo variant="dark" className="h-4 w-auto" />
         </Link>
         <div className="hidden gap-8 font-mono text-[11px] uppercase tracking-[0.2em] text-primary/60 md:flex">
           <Link to="/studio" className="transition-colors hover:text-primary">Studio</Link>

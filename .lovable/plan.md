@@ -1,59 +1,75 @@
-# d'poto / Snapbooth — Build Plan
+# dpotopoto.com — Phase 0 + Phases A–G
 
-## Design system (locked first)
-Neon arcade kiosk with industrial/skeuomorphic touches.
+All assets received. No backend yet (Cloud + Midtrans deferred to Phase H/I).
 
-- **Palette**: bg `#0A0A0F`, surface `#1A1A24`, foreground `#F0F0FF`, primary neon mint `#73FFB8`, secondary cyan `#00F0FF`, alert red, plus **brushed-metal gradient** for kiosk hardware feel (linear gradients `#2A2A35 → #14141C → #2A2A35` with subtle inner highlights).
-- **Fonts**: Space Grotesk (display) + JetBrains Mono (mono labels, prices, system text).
-- **Motifs**: scanline overlays, pulse glow on primary CTAs, flicker on hero text, `LIVE` badges, mono labels like `// System Initialized`, `01 / Capture`. Buttons feel like hardware switches (inset shadows, top highlight, bottom shadow), kiosk panels have rivets and bezels.
-- All tokens defined once in `src/styles.css`; every component uses semantic tokens (no raw colors).
+## Assets in place
 
-## Build order (4 phases)
+```text
+src/assets/brand/dpotopoto-{black,white}.png
+src/assets/frames/frame-{1x1,2x3,3x2}.jpg
+src/assets/patterns/{leave-01,leave-02,love-01,love-02,ball-01,bee-01,graphic-01}.png
+```
 
-### Phase 1 — Marketing + design system (this step)
-1. Establish design tokens, fonts, scanline/glow/flicker utilities in `src/styles.css`.
-2. Build `/` landing page mirroring the chosen prototype (hero, 3 services, kiosk pitch, pricing, footer) — but with industrial buttons and brushed-metal accents on the kiosk section.
-3. Add routes for `/pricing`, `/kiosk` (SEO-friendly separate pages).
-4. Generate hero/service/kiosk images via image-gen (replace placeholders).
-5. EN/ID language toggle stub (copy stored as constants, switched client-side).
+## Phase 0 — Brand swap (dpotopoto.com)
 
-### Phase 2 — Frame Studio (core creative engine, shared by all booths)
-1. `/studio` — layered canvas editor: base photo → frame (hue slider) → logo (drag, resize, opacity) → caption (font, size, color, **caption background box** with drag/resize and fill-color/opacity sliders).
-2. Output presets: web (1080×1080/1350/1920) + print @300dpi (2R, 4R, **A5 1594×2362**, A6, square).
-3. Export JPEG via `canvas.toBlob`. Trial export appends `d'poto.com` watermark bar at the bottom of the frame (not over the photo).
-4. Skip-frame option: user can export the raw photo with no frame/logo/caption.
+- New `<BrandLogo variant="auto" | "light" | "dark" />` — picks black PNG on light bg, white PNG on dark bg.
+- Replace text mark in `SiteNav` and `SiteFooter` with the logo.
+- Update titles/meta across `/`, `/pricing`, `/kiosk`, `/studio` from "d'poto" → "dpotopoto.com".
+- Favicon → black PNG.
+- Studio trial watermark text → "dpotopoto.com — TRIAL".
 
-### Phase 3 — Photo Booth + Printer Booth (guest-facing)
-1. `/booth` — `getUserMedia` capture (front/back, single or 4-strip), countdown, retake, send to Studio.
-2. Device picker (webcam, action cam, DSLR-via-capture-card all show up as cameras).
-3. Skip-frame allowed.
-4. `/print` — upload file → pick size → kiosk-only (gated to kiosk session); pay-per-print, no trial.
-5. Native `navigator.share` + per-platform deep links (WhatsApp/Telegram/X/FB/LINE/Email/Copy). One file at a time.
+## What ships in this build (testable)
 
-### Phase 4 — Kiosk mode, Auth, Payments
-1. `/kiosk/:code` — portrait + landscape, standby attract loop (3-slide intro + QR + ads), phone-as-remote pairing via Lovable Cloud Realtime channel.
-2. Big-screen flow: monitor = stage, phone = remote, control messages only (no media streamed).
-3. Enable Lovable Cloud → email/Google auth (hosts only).
-4. Tables: `profiles`, `user_roles` (host/admin), `events`, `kiosks`, `download_credits`, `prints`, `assets` (logos).
-5. Trial logic: 7 days **or** 20 exports — watermark forced. Printer + Kiosk excluded from trial.
-6. Payments: **Midtrans** (IDR) + **Lemon Squeezy** (USD) webhooks → credit packs:
-   - Pro: 49K IDR / $4.99 → 50 downloads, manual logo per export, 50% off for first 1000 users.
-   - Business: 149K IDR / $12.99 per event → 200 downloads + 1K IDR / $0.10 per extra, up to 3 saved logos reusable across the event.
-   - Kiosk plan: same as Business initially (separate SKU for future repricing); per-kiosk-owner pricing override field.
-   - Printer: pay-per-print only (IDR 10K for A5/5R or 2R/4R), suppressed when nearby printer exists.
+1. `/studio` → pick ratio (1:1 / 2:3 / 3:2).
+2. Pick layout (1, 2, 3, or 4 photo slots) — each slot **draggable + resizable**, min 350×350 canvas px, 8px edge snap.
+3. Upload a JPEG into each slot (click or drag-drop).
+4. Pick one of 3 white frames → tint with **Hue + Saturation** sliders (multiply blend).
+5. Optional pattern overlay (7 PNG presets), opacity slider, drawn between frame and photos.
+6. Logo (drag/resize/opacity) + caption (font, color, size, draggable bg box).
+7. Upload custom flat frame → auto-snaps to nearest preset ratio.
+8. Export JPEG at web or print @300dpi. Trial watermark toggle.
 
-## Technical notes
-- Stack: TanStack Start + React 19 + Tailwind v4 (already set up). Routes in `src/routes/`. Server logic via `createServerFn`. Realtime via Lovable Cloud (Supabase) channels keyed `kiosk:{code}`.
-- Guest photos never persist — browser memory only. Host logos + frames + standby ads in Lovable Cloud storage. Event galleries (future) on Cloudflare R2.
-- Webhook routes under `src/routes/api/public/` with HMAC signature verification.
-- Payments enabled later (Phase 4) since both Midtrans and Lemon Squeezy are user-specified — will use bring-your-own-key via `secrets` tool, not the built-in seamless integrations.
+## Layer order (locked)
 
-## Open items resolved
-- Trial: 7d or 20 exports, watermark bar at bottom of frame, photo/frame booth only ✓
-- Pricing per your spec ✓
-- Printer: pay-per-print, kiosk-only ✓
-- Logos: 1 per export (Free/Pro), up to 3 reusable (Business) ✓
-- Visual direction: Neon arcade kiosk + industrial/metallic ✓
+```text
+background → frame (white JPEG × hue/sat multiply tint)
+          → pattern overlay (optional, opacity slider)
+          → photos in slots (drawn LAST — always on top)
+          → logo → caption → trial watermark band
+```
 
-## What I'll build first when you approve
-Phase 1 only: design tokens, landing page, pricing/kiosk routes, hero imagery. You'll see and approve the look before I build the booth functionality.
+## Phases A–G (one build, in order)
+
+- **A — Flat frame model.** Rewrite `src/lib/frames.ts`: `{ id, name, src, ratio, kind }`. Drop SVG hole concept. Add `RATIOS` constant + ratio picker.
+- **B — Frame asset library.** Wire the 3 JPEGs into the manifest.
+- **C — Slot layouts.** `src/lib/layouts.ts` with 12 presets: `LAYOUTS[ratio][count]` normalized 0–1. 1 full, 2 side/stacked, 3 row or 1+2, 4 as 2×2.
+- **D — Draggable + resizable photo slots.** Reuse `useRectController`. Per-slot file input. `object-fit: cover`. Min 350×350 canvas px. Edge snap 8px. Overlap allowed. "Reset layout" button.
+- **E — Frame tint.** Hue (0–360°) + Saturation (0–100%) sliders. `multiply` blend with `hsl(h, s%, 50%)`.
+- **F — Pattern overlay.** `src/lib/patterns.ts` manifest. Studio panel "05 · Pattern": grid + "None", opacity slider, tile-repeat toggle (default off → stretched).
+- **G — Custom frame upload.** Read dimensions → snap to nearest preset ratio → register as `kind: "custom"`, session-only.
+
+## Files touched
+
+```text
+NEW   src/components/site/BrandLogo.tsx
+NEW   src/lib/layouts.ts
+NEW   src/lib/patterns.ts
+NEW   src/components/studio/PhotoSlot.tsx
+NEW   src/components/studio/RatioPicker.tsx
+NEW   src/components/studio/LayoutPicker.tsx
+NEW   src/components/studio/PatternPanel.tsx
+EDIT  src/lib/frames.ts             (image-based manifest)
+EDIT  src/lib/studio-export.ts      (new layer order, multi-slot)
+EDIT  src/routes/studio.tsx         (slots, ratio, layout, pattern panels)
+EDIT  src/components/site/SiteNav.tsx + SiteFooter.tsx   (BrandLogo)
+EDIT  src/routes/__root.tsx         (title, favicon)
+EDIT  src/routes/{index,pricing,kiosk}.tsx (meta updates)
+```
+
+## Out of scope
+
+- Phase H — Lovable Cloud + auth (sign-in for paying users, saved frames/logos).
+- Phase I — Midtrans (you sign up at midtrans.com, paste sandbox keys when ready; I wire checkout + webhook).
+- `/booth` camera capture wiring to slots.
+
+Approve and I'll build the whole thing in one pass and ping you to test.

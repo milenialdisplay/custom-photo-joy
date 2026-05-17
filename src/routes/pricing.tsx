@@ -6,9 +6,9 @@ import { PricingGrid } from "./index";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "Pricing — d'poto" },
-      { name: "description", content: "Simple pay-as-you-snap pricing for d'poto photo booth, frame booth, kiosk, and printer." },
-      { property: "og:title", content: "Pricing — d'poto" },
+      { title: "Pricing — dpotopoto.com" },
+      { name: "description", content: "Simple pay-as-you-snap pricing for dpotopoto.com photo booth, frame booth, kiosk, and printer." },
+      { property: "og:title", content: "Pricing — dpotopoto.com" },
       { property: "og:description", content: "Free trial, Pro (IDR 49K / $4.99), Business (IDR 149K / $12.99). Pay-per-print on kiosks." },
     ],
   }),
