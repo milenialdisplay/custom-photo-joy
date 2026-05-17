@@ -143,7 +143,7 @@ function StudioPage() {
         }),
       );
       toast.success("Photo imported", {
-        description: "Your captured snapshot is loaded into slot 1.",
+        description: "Your captured snapshot is loaded into slot 0.",
       });
     });
     return () => {
