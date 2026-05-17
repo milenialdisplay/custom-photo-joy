@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
-import { AlertCircle, RefreshCw, Camera, ArrowRight, CheckCircle2 } from "lucide-react";
+import { AlertCircle, RefreshCw, Camera, ArrowRight, CheckCircle2, RotateCcw } from "lucide-react";
 
 type FacingMode = "user" | "environment";
 
@@ -91,6 +91,7 @@ function CameraTestPage() {
   const [facing, setFacing] = useState<FacingMode>("environment");
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
 
   async function startCamera() {
     setStatus("starting");
@@ -138,6 +139,22 @@ function CameraTestPage() {
   function switchFacing() {
     stopCamera();
     setFacing((f) => (f === "user" ? "environment" : "user"));
+  }
+
+  function capture() {
+    const v = videoRef.current;
+    if (!v || !v.videoWidth) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = v.videoWidth;
+    canvas.height = v.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    setCapturedUrl(canvas.toDataURL("image/jpeg", 0.92));
+  }
+
+  function retake() {
+    setCapturedUrl(null);
   }
 
   useEffect(() => {
@@ -233,14 +250,14 @@ function CameraTestPage() {
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <button
               onClick={switchFacing}
-              disabled={status === "starting" || status === "idle"}
+              disabled={status === "starting" || status === "idle" || !!capturedUrl}
               className="rounded border border-primary/40 px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-primary hover:bg-primary/10 disabled:opacity-30"
             >
               Switch ({facing === "user" ? "Front" : "Back"})
             </button>
 
             <div className="flex items-center gap-2">
-              {isReady && (
+              {isReady && !capturedUrl && (
                 <div className="flex items-center gap-2 rounded border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-emerald-400">
                   <CheckCircle2 className="size-3.5" />
                   Camera works
@@ -256,6 +273,55 @@ function CameraTestPage() {
               </Link>
             </div>
           </div>
+
+          {/* Capture button */}
+          {isReady && !capturedUrl && (
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={capture}
+                className="flex items-center gap-2 rounded-full bg-primary px-8 py-3 font-mono text-sm font-bold uppercase tracking-wider text-primary-foreground shadow-[0_0_16px_currentColor] transition-transform active:scale-95 hover:brightness-110"
+              >
+                <Camera className="size-5" />
+                Capture
+              </button>
+            </div>
+          )}
+
+          {/* Captured photo confirmation */}
+          {capturedUrl && (
+            <div className="mt-5 rounded border border-primary/20 bg-muted/30 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-emerald-400">
+                  <CheckCircle2 className="size-3.5" />
+                  Snapshot captured
+                </div>
+                <button
+                  onClick={retake}
+                  className="inline-flex items-center gap-1.5 rounded border border-primary/40 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-primary hover:bg-primary/10"
+                >
+                  <RotateCcw className="size-3" />
+                  Retake
+                </button>
+              </div>
+              <div className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded bg-black">
+                <img
+                  src={capturedUrl}
+                  alt="Captured snapshot"
+                  className="size-full object-cover"
+                />
+              </div>
+              <div className="mt-4 flex justify-center">
+                <Link to="/studio">
+                  <NeonButton size="md" glow>
+                    <span className="flex items-center gap-2">
+                      Looks Good — Start Designing
+                      <ArrowRight className="size-3.5" />
+                    </span>
+                  </NeonButton>
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tips */}
