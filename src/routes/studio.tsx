@@ -17,6 +17,7 @@ import { PATTERNS } from "@/lib/patterns";
 import { getLayout, type SlotCount } from "@/lib/layouts";
 import { useRectController, type Rect } from "@/components/studio/useDraggable";
 import { exportJPEG, downloadBlob, type ExportState, type SlotState } from "@/lib/studio-export";
+import { CameraCapture } from "@/components/studio/CameraCapture";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
