@@ -631,7 +631,7 @@ function Slider({
 }
 
 function PhotoSlot({
-  index, slot, stageRef, minW, minH, onRectChange, onPick, onClear,
+  index, slot, stageRef, minW, minH, onRectChange, onPick, onClear, onCamera,
 }: {
   index: number;
   slot: SlotState;
@@ -641,6 +641,7 @@ function PhotoSlot({
   onRectChange: (r: Rect) => void;
   onPick: (f: File | null) => void;
   onClear: () => void;
+  onCamera: () => void;
 }) {
   const ctl = useRectController(stageRef, slot.rect, onRectChange, { minW, minH, snap: 0.008 });
   const edgeHandle = (edge: "n" | "s" | "e" | "w", cls: string, label: string) => (
