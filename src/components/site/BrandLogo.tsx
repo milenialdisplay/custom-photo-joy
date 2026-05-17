@@ -14,8 +14,8 @@ export function BrandLogo({ variant = "dark", className = "text-xl", alt = "dpot
   return (
     <span
       aria-label={alt}
-      className={`select-none font-semibold tracking-tight ${color} ${className}`}
-      style={{ fontFamily: '"Fredoka", "Quicksand", system-ui, sans-serif', letterSpacing: "-0.02em" }}
+      className={`select-none font-semibold leading-none ${color} ${className}`}
+      style={{ fontFamily: '"Fredoka", "Quicksand", system-ui, sans-serif' }}
     >
       dpotopoto<span className="opacity-60">.com</span>
     </span>
