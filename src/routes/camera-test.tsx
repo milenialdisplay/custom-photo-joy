@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
 import { AlertCircle, RefreshCw, Camera, ArrowRight, CheckCircle2, RotateCcw } from "lucide-react";
+import { setPendingCapture } from "@/lib/pending-capture";
 
 type FacingMode = "user" | "environment";
 
@@ -86,12 +87,19 @@ function PermissionHelp() {
 }
 
 function CameraTestPage() {
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<FacingMode>("environment");
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
+
+  function useCaptureInStudio() {
+    if (!capturedUrl) return;
+    setPendingCapture(capturedUrl);
+    navigate({ to: "/studio" });
+  }
 
   async function startCamera() {
     setStatus("starting");
@@ -311,14 +319,12 @@ function CameraTestPage() {
                 />
               </div>
               <div className="mt-4 flex justify-center">
-                <Link to="/studio">
-                  <NeonButton size="md" glow>
-                    <span className="flex items-center gap-2">
-                      Looks Good — Start Designing
-                      <ArrowRight className="size-3.5" />
-                    </span>
-                  </NeonButton>
-                </Link>
+                <NeonButton size="md" glow onClick={useCaptureInStudio}>
+                  <span className="flex items-center gap-2">
+                    Use Photo — Start Designing
+                    <ArrowRight className="size-3.5" />
+                  </span>
+                </NeonButton>
               </div>
             </div>
           )}
