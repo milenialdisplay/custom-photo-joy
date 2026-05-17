@@ -343,6 +343,10 @@ function StudioPage() {
                     DPOTOPOTO.COM — TRIAL
                   </div>
                 )}
+
+                <div className="pointer-events-none absolute bottom-[6.5%] left-[4%] z-10 opacity-95">
+                  <BrandLogo variant="dark" className="text-sm md:text-base" />
+                </div>
               </div>
             </div>
 
@@ -577,9 +581,17 @@ function StudioPage() {
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({
+  title,
+  children,
+  mobileActive = true,
+}: {
+  title: string;
+  children: React.ReactNode;
+  mobileActive?: boolean;
+}) {
   return (
-    <section className="space-y-3 rounded border border-primary/15 bg-card/40 p-4">
+    <section className={`space-y-3 rounded border border-primary/15 bg-card/40 p-4 ${mobileActive ? "block" : "hidden lg:block"}`}>
       <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">{title}</div>
       {children}
     </section>
