@@ -1,0 +1,9 @@
+{
+  "_comment": "Matte 120gsm. Matte absorbs more ink → boost contrast + saturation a touch more than glossy.",
+  "gamma": 0.93,
+  "shadow_lift": 4,
+  "highlight_roll": 3,
+  "sat_boost": 12,
+  "warm_shift": 0,
+  "unsharp": "0x0.7+0.7+0.04"
+}

@@ -1,0 +1,5 @@
+uploads/
+tmp/
+queue.sqlite
+profiles/*.icc
+!profiles/README.md

@@ -114,7 +114,7 @@ function Landing() {
                 desc: "Print 2R, 4R, A5, A6 or square at any kiosk. Pay per print. No subscription.",
                 img: servicePrint,
                 alt: "Thermal printer dispensing a fresh print",
-                href: undefined,
+                href: "/printer" as const,
               },
             ].map((s) => {
               const card = (
@@ -138,12 +138,10 @@ function Landing() {
                   </div>
                 </article>
               );
-              return s.href ? (
+              return (
                 <Link key={s.title} to={s.href} className="block">
                   {card}
                 </Link>
-              ) : (
-                <div key={s.title}>{card}</div>
               );
             })}
           </div>
