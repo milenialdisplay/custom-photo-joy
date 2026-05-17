@@ -319,14 +319,12 @@ function CameraTestPage() {
                 />
               </div>
               <div className="mt-4 flex justify-center">
-                <Link to="/studio">
-                  <NeonButton size="md" glow>
-                    <span className="flex items-center gap-2">
-                      Looks Good — Start Designing
-                      <ArrowRight className="size-3.5" />
-                    </span>
-                  </NeonButton>
-                </Link>
+                <NeonButton size="md" glow onClick={useCaptureInStudio}>
+                  <span className="flex items-center gap-2">
+                    Use Photo — Start Designing
+                    <ArrowRight className="size-3.5" />
+                  </span>
+                </NeonButton>
               </div>
             </div>
           )}
