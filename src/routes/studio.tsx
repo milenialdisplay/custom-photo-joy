@@ -19,6 +19,7 @@ import { useRectController, type Rect } from "@/components/studio/useDraggable";
 import { exportJPEG, downloadBlob, type ExportState, type SlotState } from "@/lib/studio-export";
 import { CameraCapture } from "@/components/studio/CameraCapture";
 import { consumePendingCapture, dataUrlToFile } from "@/lib/pending-capture";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
@@ -141,6 +142,9 @@ function StudioPage() {
           return { ...s, photoUrl: URL.createObjectURL(file) };
         }),
       );
+      toast.success("Photo imported", {
+        description: "Your captured snapshot is loaded into slot 1.",
+      });
     });
     return () => {
       cancelled = true;
