@@ -114,7 +114,7 @@ function Landing() {
                 desc: "Print 2R, 4R, A5, A6 or square at any kiosk. Pay per print. No subscription.",
                 img: servicePrint,
                 alt: "Thermal printer dispensing a fresh print",
-                href: undefined,
+                href: "/printer" as const,
               },
             ].map((s) => {
               const card = (
