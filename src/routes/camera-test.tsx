@@ -141,6 +141,22 @@ function CameraTestPage() {
     setFacing((f) => (f === "user" ? "environment" : "user"));
   }
 
+  function capture() {
+    const v = videoRef.current;
+    if (!v || !v.videoWidth) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = v.videoWidth;
+    canvas.height = v.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    setCapturedUrl(canvas.toDataURL("image/jpeg", 0.92));
+  }
+
+  function retake() {
+    setCapturedUrl(null);
+  }
+
   useEffect(() => {
     startCamera();
     return () => {
