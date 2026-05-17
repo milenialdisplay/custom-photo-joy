@@ -679,17 +679,28 @@ function PhotoSlot({
           </button>
         </>
       ) : (
-        <label
-          className="absolute inset-0 grid cursor-pointer place-items-center bg-card/40 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60 hover:bg-primary/5"
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card/40 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60"
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
           <span className="text-center leading-tight">
-            + photo {index + 1}
+            slot {index + 1}
             <br />
             <span className="text-[8px] text-primary/40">drag center · drag edges to resize</span>
           </span>
-        </label>
+          <div className="flex gap-2">
+            <label className="cursor-pointer rounded border border-primary/50 px-2 py-1 text-[9px] hover:bg-primary/10">
+              <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
+              Upload
+            </label>
+            <button
+              onClick={(e) => { e.stopPropagation(); onCamera(); }}
+              className="rounded border border-secondary/60 px-2 py-1 text-[9px] text-secondary hover:bg-secondary/10"
+            >
+              ● Camera
+            </button>
+          </div>
+        </div>
       )}
       <span className="absolute top-1 left-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] text-primary/80">
         {index + 1}
