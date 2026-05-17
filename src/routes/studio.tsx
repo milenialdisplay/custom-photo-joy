@@ -74,6 +74,7 @@ function StudioPage() {
   const [presetId, setPresetId] = useState<OutputPresetId>("web-1x1");
   const [trial, setTrial] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [cameraSlot, setCameraSlot] = useState<number | null>(null);
 
   const stageRef = useRef<HTMLDivElement>(null);
 
