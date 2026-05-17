@@ -18,6 +18,7 @@ import { getLayout, type SlotCount } from "@/lib/layouts";
 import { useRectController, type Rect } from "@/components/studio/useDraggable";
 import { exportJPEG, downloadBlob, type ExportState, type SlotState } from "@/lib/studio-export";
 import { CameraCapture } from "@/components/studio/CameraCapture";
+import { consumePendingCapture, dataUrlToFile } from "@/lib/pending-capture";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
@@ -122,6 +123,27 @@ function StudioPage() {
       slots.forEach((s) => s.photoUrl && URL.revokeObjectURL(s.photoUrl));
       if (logoUrl) URL.revokeObjectURL(logoUrl);
       if (customFrame?.kind === "custom") URL.revokeObjectURL(customFrame.src);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Consume a pending capture handed off from /camera-test → load into slot 0
+  useEffect(() => {
+    const pending = consumePendingCapture();
+    if (!pending) return;
+    let cancelled = false;
+    dataUrlToFile(pending).then((file) => {
+      if (cancelled) return;
+      setSlots((prev) =>
+        prev.map((s, i) => {
+          if (i !== 0) return s;
+          if (s.photoUrl) URL.revokeObjectURL(s.photoUrl);
+          return { ...s, photoUrl: URL.createObjectURL(file) };
+        }),
+      );
+    });
+    return () => {
+      cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
