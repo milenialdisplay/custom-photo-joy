@@ -3,16 +3,26 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
-import { FRAMES, OUTPUT_PRESETS, type FrameId, type OutputPresetId } from "@/lib/frames";
+import {
+  PRESET_FRAMES,
+  RATIOS,
+  OUTPUT_PRESETS,
+  snapToRatio,
+  type Frame,
+  type Ratio,
+  type OutputPresetId,
+} from "@/lib/frames";
+import { PATTERNS } from "@/lib/patterns";
+import { getLayout, type SlotCount } from "@/lib/layouts";
 import { useRectController, type Rect } from "@/components/studio/useDraggable";
-import { exportJPEG, downloadBlob, type ExportState } from "@/lib/studio-export";
+import { exportJPEG, downloadBlob, type ExportState, type SlotState } from "@/lib/studio-export";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
     meta: [
-      { title: "Frame Studio — d'poto" },
-      { name: "description", content: "Layered photo editor: drop a photo, pick a frame, drag your logo and caption, and export print-ready files." },
-      { property: "og:title", content: "Frame Studio — d'poto" },
+      { title: "Frame Studio — dpotopoto.com" },
+      { name: "description", content: "Pick a ratio, drop photos into draggable slots, tint a frame, overlay a pattern, and export print-ready JPEG." },
+      { property: "og:title", content: "Frame Studio — dpotopoto.com" },
       { property: "og:description", content: "Compose, frame, and export at print resolution." },
     ],
   }),
@@ -22,18 +32,33 @@ export const Route = createFileRoute("/studio")({
 const DEFAULT_LOGO: Rect = { x: 0.04, y: 0.04, w: 0.18, h: 0.1 };
 const DEFAULT_CAPTION: Rect = { x: 0.1, y: 0.82, w: 0.8, h: 0.1 };
 
+const PATTERN_LOOKUP = (id: string) => PATTERNS.find((p) => p.id === id)?.src;
+
 function StudioPage() {
-  // photo / frame
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [frameId, setFrameId] = useState<FrameId>("neon-bezel");
+  // ratio + layout
+  const [ratio, setRatio] = useState<Ratio>("1:1");
+  const [slotCount, setSlotCount] = useState<SlotCount>(1);
+  const [slots, setSlots] = useState<SlotState[]>(() =>
+    getLayout("1:1", 1).map((rect) => ({ rect, photoUrl: null })),
+  );
+
+  // frame
+  const [customFrame, setCustomFrame] = useState<Frame | null>(null);
+  const [frameId, setFrameId] = useState<string>("white-1x1");
   const [frameHue, setFrameHue] = useState(0);
+  const [frameSat, setFrameSat] = useState(0);
+
+  // pattern
+  const [patternId, setPatternId] = useState<string | null>(null);
+  const [patternOpacity, setPatternOpacity] = useState(0.6);
+  const [patternTile, setPatternTile] = useState(false);
 
   // logo
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoRect, setLogoRect] = useState<Rect>(DEFAULT_LOGO);
   const [logoOpacity, setLogoOpacity] = useState(1);
 
-  // caption + bg box
+  // caption
   const [caption, setCaption] = useState("");
   const [captionFont, setCaptionFont] = useState("Space Grotesk");
   const [captionSize, setCaptionSize] = useState(0.045);
@@ -43,11 +68,40 @@ function StudioPage() {
   const [captionBgOpacity, setCaptionBgOpacity] = useState(0.6);
 
   // export
-  const [presetId, setPresetId] = useState<OutputPresetId>("portrait-1080");
+  const [presetId, setPresetId] = useState<OutputPresetId>("web-1x1");
   const [trial, setTrial] = useState(true);
   const [exporting, setExporting] = useState(false);
 
   const stageRef = useRef<HTMLDivElement>(null);
+
+  // when user changes ratio, snap output preset + frame to a matching one
+  useEffect(() => {
+    const match = OUTPUT_PRESETS.find((p) => p.ratio === ratio);
+    if (match) setPresetId(match.id as OutputPresetId);
+    const preset = PRESET_FRAMES.find((f) => f.ratio === ratio);
+    if (preset && (!frameId || PRESET_FRAMES.find((f) => f.id === frameId)?.ratio !== ratio)) {
+      if (customFrame?.ratio !== ratio) setFrameId(preset.id);
+    }
+    // rebuild slot layout for new ratio + current count
+    setSlots((prev) =>
+      getLayout(ratio, slotCount).map((rect, i) => ({
+        rect,
+        photoUrl: prev[i]?.photoUrl ?? null,
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ratio]);
+
+  // when slot count changes, rebuild but preserve photos in order
+  useEffect(() => {
+    setSlots((prev) =>
+      getLayout(ratio, slotCount).map((rect, i) => ({
+        rect,
+        photoUrl: prev[i]?.photoUrl ?? null,
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotCount]);
 
   const preset = useMemo(
     () => OUTPUT_PRESETS.find((p) => p.id === presetId) ?? OUTPUT_PRESETS[0],
@@ -55,10 +109,85 @@ function StudioPage() {
   );
   const stageAspect = preset.w / preset.h;
 
+  // min slot size = 350 canvas px → normalized
+  const minSlotW = 350 / preset.w;
+  const minSlotH = 350 / preset.h;
+
+  useEffect(() => {
+    return () => {
+      slots.forEach((s) => s.photoUrl && URL.revokeObjectURL(s.photoUrl));
+      if (logoUrl) URL.revokeObjectURL(logoUrl);
+      if (customFrame?.kind === "custom") URL.revokeObjectURL(customFrame.src);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const setSlotPhoto = (idx: number, file: File | null) => {
+    if (!file) return;
+    setSlots((prev) =>
+      prev.map((s, i) => {
+        if (i !== idx) return s;
+        if (s.photoUrl) URL.revokeObjectURL(s.photoUrl);
+        return { ...s, photoUrl: URL.createObjectURL(file) };
+      }),
+    );
+  };
+  const setSlotRect = (idx: number, rect: Rect) =>
+    setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, rect } : s)));
+  const clearSlotPhoto = (idx: number) =>
+    setSlots((prev) =>
+      prev.map((s, i) => {
+        if (i !== idx) return s;
+        if (s.photoUrl) URL.revokeObjectURL(s.photoUrl);
+        return { ...s, photoUrl: null };
+      }),
+    );
+
+  const onPickLogo = (f: File | null) => {
+    if (!f) return;
+    if (logoUrl) URL.revokeObjectURL(logoUrl);
+    setLogoUrl(URL.createObjectURL(f));
+  };
+
+  const onPickCustomFrame = (f: File | null) => {
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      const snapped = snapToRatio(img.width, img.height);
+      const cf: Frame = {
+        id: `custom-${Date.now()}`,
+        name: `Custom ${snapped}`,
+        src: url,
+        ratio: snapped,
+        kind: "custom",
+      };
+      if (customFrame?.kind === "custom") URL.revokeObjectURL(customFrame.src);
+      setCustomFrame(cf);
+      setFrameId(cf.id);
+      setRatio(snapped);
+    };
+    img.src = url;
+  };
+
+  const resetLayout = () => {
+    setSlots((prev) =>
+      getLayout(ratio, slotCount).map((rect, i) => ({
+        rect,
+        photoUrl: prev[i]?.photoUrl ?? null,
+      })),
+    );
+  };
+
   const exportState: ExportState = {
-    photoUrl,
     frameId,
+    customFrame,
     frameHue,
+    frameSat,
+    patternId,
+    patternOpacity,
+    patternTile,
+    slots,
     logoUrl,
     logoRect,
     logoOpacity,
@@ -72,42 +201,29 @@ function StudioPage() {
     trial,
   };
 
-  useEffect(() => {
-    return () => {
-      if (photoUrl) URL.revokeObjectURL(photoUrl);
-      if (logoUrl) URL.revokeObjectURL(logoUrl);
-    };
-  }, [photoUrl, logoUrl]);
-
-  const onPickPhoto = (f: File | null) => {
-    if (!f) return;
-    if (photoUrl) URL.revokeObjectURL(photoUrl);
-    setPhotoUrl(URL.createObjectURL(f));
-  };
-  const onPickLogo = (f: File | null) => {
-    if (!f) return;
-    if (logoUrl) URL.revokeObjectURL(logoUrl);
-    setLogoUrl(URL.createObjectURL(f));
-  };
-
   const handleExport = async () => {
     setExporting(true);
     try {
-      const blob = await exportJPEG(exportState, preset.w, preset.h);
-      downloadBlob(blob, `dpoto-${preset.id}-${Date.now()}.jpg`);
+      const blob = await exportJPEG(exportState, preset.w, preset.h, PATTERN_LOOKUP);
+      downloadBlob(blob, `dpotopoto-${preset.id}-${Date.now()}.jpg`);
     } finally {
       setExporting(false);
     }
   };
 
-  const frameSvg = useMemo(() => {
-    const f = FRAMES.find((x) => x.id === frameId);
-    if (!f || f.id === "none") return "";
-    return f.render(1000, 1000 / stageAspect, frameHue);
-  }, [frameId, frameHue, stageAspect]);
+  const activeFrame: Frame | null =
+    customFrame?.id === frameId ? customFrame : PRESET_FRAMES.find((f) => f.id === frameId) ?? null;
+  const tintCss =
+    frameSat > 0 ? `hsl(${frameHue}, ${frameSat}%, 50%)` : "transparent";
+  const patternSrc = patternId ? PATTERN_LOOKUP(patternId) : undefined;
 
-  const logoCtl = useRectController(stageRef, logoRect, setLogoRect);
-  const capCtl = useRectController(stageRef, captionRect, setCaptionRect);
+  const logoCtl = useRectController(stageRef, logoRect, setLogoRect, { snap: 0.008 });
+  const capCtl = useRectController(stageRef, captionRect, setCaptionRect, { snap: 0.008 });
+
+  const framesForRatio = useMemo(
+    () => [...PRESET_FRAMES.filter((f) => f.ratio === ratio), ...(customFrame && customFrame.ratio === ratio ? [customFrame] : [])],
+    [ratio, customFrame],
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -120,7 +236,7 @@ function StudioPage() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[1fr_360px]">
+      <div className="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[1fr_380px]">
         {/* PREVIEW */}
         <div>
           <div className="metal-panel rounded p-4">
@@ -134,36 +250,54 @@ function StudioPage() {
             <div className="relative mx-auto w-full" style={{ maxWidth: stageAspect >= 1 ? "100%" : `${stageAspect * 70}vh` }}>
               <div
                 ref={stageRef}
-                className="relative w-full overflow-hidden bg-card scanlines select-none"
+                className="relative w-full overflow-hidden bg-white scanlines select-none"
                 style={{ aspectRatio: `${preset.w} / ${preset.h}` }}
               >
-                {photoUrl ? (
-                  <img src={photoUrl} alt="" className="absolute inset-0 size-full object-cover" draggable={false} />
-                ) : (
-                  <div className="absolute inset-0 grid place-items-center bg-muted/40">
-                    <label className="cursor-pointer rounded border border-dashed border-primary/40 px-6 py-4 text-center font-mono text-xs text-primary/70 hover:bg-primary/5">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => onPickPhoto(e.target.files?.[0] ?? null)}
+                {/* Frame */}
+                {activeFrame && (
+                  <>
+                    <img src={activeFrame.src} alt="" className="pointer-events-none absolute inset-0 size-full" draggable={false} />
+                    {frameSat > 0 && (
+                      <div
+                        className="pointer-events-none absolute inset-0"
+                        style={{
+                          background: tintCss,
+                          mixBlendMode: "multiply",
+                        }}
                       />
-                      drop photo · or click
-                    </label>
-                  </div>
+                    )}
+                  </>
                 )}
 
-                {frameSvg && (
+                {/* Pattern overlay */}
+                {patternSrc && (
                   <div
                     className="pointer-events-none absolute inset-0"
-                    aria-hidden
-                    dangerouslySetInnerHTML={{
-                      __html: frameSvg.replace(/width="\d+" height="\d+"/, 'width="100%" height="100%" preserveAspectRatio="none"'),
+                    style={{
+                      opacity: patternOpacity,
+                      backgroundImage: `url(${patternSrc})`,
+                      backgroundSize: patternTile ? "auto" : "100% 100%",
+                      backgroundRepeat: patternTile ? "repeat" : "no-repeat",
                     }}
                   />
                 )}
 
-                {/* caption bg + text */}
+                {/* Photo slots (on top of pattern) */}
+                {slots.map((slot, i) => (
+                  <PhotoSlot
+                    key={i}
+                    index={i}
+                    slot={slot}
+                    stageRef={stageRef}
+                    minW={minSlotW}
+                    minH={minSlotH}
+                    onRectChange={(r) => setSlotRect(i, r)}
+                    onPick={(f) => setSlotPhoto(i, f)}
+                    onClear={() => clearSlotPhoto(i)}
+                  />
+                ))}
+
+                {/* caption */}
                 {caption.trim() && (
                   <DraggableBox rect={captionRect} ctl={capCtl} accent>
                     <div
@@ -201,65 +335,122 @@ function StudioPage() {
                   </DraggableBox>
                 )}
 
-                {/* trial watermark preview band */}
+                {/* trial watermark band */}
                 {trial && (
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-[4.5%] items-center justify-center bg-background/85 font-mono text-[8px] tracking-[0.3em] text-primary">
-                    D'POTO.COM — TRIAL
+                    DPOTOPOTO.COM — TRIAL
                   </div>
                 )}
               </div>
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
-              <span>drag elements · corner = resize</span>
-              <div className="flex gap-2">
-                <label className="cursor-pointer rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10">
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickPhoto(e.target.files?.[0] ?? null)} />
-                  Swap_Photo
-                </label>
-                <button
-                  className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
-                  onClick={() => {
-                    setLogoRect(DEFAULT_LOGO);
-                    setCaptionRect(DEFAULT_CAPTION);
-                  }}
-                >
-                  Reset_Layout
-                </button>
-              </div>
+              <span>drag slots · corner = resize · click slot to upload</span>
+              <button
+                onClick={resetLayout}
+                className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
+              >
+                Reset_Layout
+              </button>
             </div>
           </div>
         </div>
 
         {/* CONTROLS */}
         <aside className="space-y-5">
-          <Panel title="01 · Frame">
+          <Panel title="01 · Ratio & Layout">
             <div className="grid grid-cols-3 gap-2">
-              {FRAMES.map((f) => (
+              {RATIOS.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => setRatio(r.id)}
+                  className={`rounded border px-2 py-3 font-mono text-[10px] uppercase tracking-wider transition-all ${
+                    ratio === r.id ? "border-primary bg-primary/10 text-primary neon-glow" : "border-primary/15 text-primary/60 hover:border-primary/40"
+                  }`}
+                >
+                  {r.id}
+                  <div className="mt-0.5 text-[8px] text-primary/50">{r.label}</div>
+                </button>
+              ))}
+            </div>
+            <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary/50">photos</div>
+            <div className="grid grid-cols-4 gap-2">
+              {([1, 2, 3, 4] as SlotCount[]).map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setSlotCount(n)}
+                  className={`rounded border py-2 font-mono text-xs transition-all ${
+                    slotCount === n ? "border-primary bg-primary/10 text-primary" : "border-primary/15 text-primary/60 hover:border-primary/40"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="02 · Frame">
+            <div className="grid grid-cols-3 gap-2">
+              {framesForRatio.map((f) => (
                 <button
                   key={f.id}
                   onClick={() => setFrameId(f.id)}
-                  className={`group relative aspect-square overflow-hidden rounded border text-[9px] font-mono uppercase tracking-wider transition-all ${
-                    frameId === f.id
-                      ? "border-primary neon-glow"
-                      : "border-primary/15 hover:border-primary/40"
+                  className={`group relative overflow-hidden rounded border text-[9px] font-mono uppercase tracking-wider transition-all ${
+                    frameId === f.id ? "border-primary neon-glow" : "border-primary/15 hover:border-primary/40"
                   }`}
+                  style={{ aspectRatio: `${f.ratio.split(":")[0]} / ${f.ratio.split(":")[1]}` }}
                   title={f.name}
                 >
-                  <div
-                    className="absolute inset-0 bg-muted"
-                    dangerouslySetInnerHTML={{
-                      __html: f.render(120, 120, frameHue).replace(/width="\d+" height="\d+"/, 'width="100%" height="100%"'),
-                    }}
-                  />
-                  <span className="absolute bottom-0 left-0 right-0 bg-background/80 px-1 py-0.5 text-primary/80">{f.tag}</span>
+                  <img src={f.src} alt={f.name} className="absolute inset-0 size-full bg-muted object-cover" />
+                  <span className="absolute bottom-0 left-0 right-0 bg-background/80 px-1 py-0.5 text-primary/80 truncate">
+                    {f.kind === "custom" ? "CUSTOM" : f.ratio}
+                  </span>
                 </button>
               ))}
             </div>
             <Slider label={`Hue ${frameHue}°`} min={0} max={360} value={frameHue} onChange={setFrameHue} />
+            <Slider label={`Saturation ${frameSat}%`} min={0} max={100} value={frameSat} onChange={setFrameSat} />
+            <label className="block cursor-pointer rounded border border-dashed border-primary/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70 hover:bg-primary/5">
+              <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)} />
+              Upload_Custom_Frame
+            </label>
           </Panel>
 
-          <Panel title="02 · Logo">
+          <Panel title="03 · Pattern">
+            <div className="grid grid-cols-4 gap-2">
+              <button
+                onClick={() => setPatternId(null)}
+                className={`aspect-square rounded border font-mono text-[9px] uppercase tracking-wider transition-all ${
+                  patternId === null ? "border-primary bg-primary/10 text-primary" : "border-primary/15 text-primary/50 hover:border-primary/40"
+                }`}
+              >
+                None
+              </button>
+              {PATTERNS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setPatternId(p.id)}
+                  className={`relative aspect-square overflow-hidden rounded border transition-all ${
+                    patternId === p.id ? "border-primary neon-glow" : "border-primary/15 hover:border-primary/40"
+                  }`}
+                  title={p.name}
+                >
+                  <img src={p.src} alt={p.name} className="absolute inset-0 size-full object-cover" />
+                </button>
+              ))}
+            </div>
+            {patternId && (
+              <>
+                <Slider label={`Opacity ${(patternOpacity * 100).toFixed(0)}%`} min={0} max={100} value={patternOpacity * 100} onChange={(v) => setPatternOpacity(v / 100)} />
+                <label className="flex cursor-pointer items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/80">
+                  <input type="checkbox" checked={patternTile} onChange={(e) => setPatternTile(e.target.checked)} />
+                  tile_repeat
+                </label>
+              </>
+            )}
+          </Panel>
+
+          <Panel title="04 · Logo">
             <label className="block cursor-pointer rounded border border-dashed border-primary/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70 hover:bg-primary/5">
               <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickLogo(e.target.files?.[0] ?? null)} />
               {logoUrl ? "Replace_Logo" : "Upload_Logo"}
@@ -274,7 +465,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="03 · Caption">
+          <Panel title="05 · Caption">
             <input
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
@@ -318,7 +509,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="04 · Export">
+          <Panel title="06 · Export">
             <select
               value={presetId}
               onChange={(e) => setPresetId(e.target.value as OutputPresetId)}
@@ -343,12 +534,14 @@ function StudioPage() {
               size="lg"
               glow
               onClick={handleExport}
-              disabled={exporting || !photoUrl}
+              disabled={exporting || slots.every((s) => !s.photoUrl)}
               className="w-full"
             >
               {exporting ? "Rendering…" : "Export_JPEG"}
             </NeonButton>
-            {!photoUrl && <p className="font-mono text-[10px] text-primary/40">// upload a photo first</p>}
+            {slots.every((s) => !s.photoUrl) && (
+              <p className="font-mono text-[10px] text-primary/40">// upload at least one photo</p>
+            )}
           </Panel>
         </aside>
       </div>
@@ -385,6 +578,65 @@ function Slider({
         className="w-full accent-primary"
       />
     </label>
+  );
+}
+
+function PhotoSlot({
+  index, slot, stageRef, minW, minH, onRectChange, onPick, onClear,
+}: {
+  index: number;
+  slot: SlotState;
+  stageRef: React.RefObject<HTMLDivElement | null>;
+  minW: number;
+  minH: number;
+  onRectChange: (r: Rect) => void;
+  onPick: (f: File | null) => void;
+  onClear: () => void;
+}) {
+  const ctl = useRectController(stageRef, slot.rect, onRectChange, { minW, minH, snap: 0.008 });
+  return (
+    <div
+      className="absolute touch-none border-2 border-dashed border-primary/70"
+      style={{
+        left: `${slot.rect.x * 100}%`,
+        top: `${slot.rect.y * 100}%`,
+        width: `${slot.rect.w * 100}%`,
+        height: `${slot.rect.h * 100}%`,
+      }}
+      onPointerDown={ctl.onPointerDown("move")}
+      onPointerMove={ctl.onPointerMove}
+      onPointerUp={ctl.onPointerUp}
+    >
+      {slot.photoUrl ? (
+        <>
+          <img src={slot.photoUrl} alt="" draggable={false} className="pointer-events-none absolute inset-0 size-full object-cover" />
+          <button
+            onClick={(e) => { e.stopPropagation(); onClear(); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="absolute top-1 right-1 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] uppercase text-destructive hover:bg-destructive hover:text-destructive-foreground"
+          >
+            ×
+          </button>
+        </>
+      ) : (
+        <label
+          className="absolute inset-0 grid cursor-pointer place-items-center bg-card/40 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60 hover:bg-primary/5"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
+          <span>+ photo {index + 1}</span>
+        </label>
+      )}
+      <span className="absolute top-1 left-1 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] text-primary/80">
+        {index + 1}
+      </span>
+      <span
+        onPointerDown={ctl.onPointerDown("resize")}
+        onPointerMove={ctl.onPointerMove}
+        onPointerUp={ctl.onPointerUp}
+        className="absolute -bottom-1.5 -right-1.5 size-3 cursor-nwse-resize bg-primary shadow-[0_0_8px_currentColor]"
+      />
+    </div>
   );
 }
 

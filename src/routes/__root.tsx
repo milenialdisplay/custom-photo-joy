@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import faviconUrl from "@/assets/brand/dpotopoto-black.png";
 
 function NotFoundComponent() {
   return (
@@ -72,15 +73,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "d'poto — Your phone is a neon photo booth" },
+      { title: "dpotopoto.com — Your phone is a neon photo booth" },
       { name: "description", content: "Turn any phone, tablet, or kiosk into a professional photo booth. Capture, frame, and print — for parties, weddings, and brand events." },
-      { name: "author", content: "d'poto" },
-      { property: "og:title", content: "d'poto — Your phone is a neon photo booth" },
+      { name: "author", content: "dpotopoto.com" },
+      { property: "og:title", content: "dpotopoto.com — Your phone is a neon photo booth" },
       { property: "og:description", content: "Capture, frame, and print at any event. No app install." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
+      { rel: "icon", type: "image/png", href: faviconUrl },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },

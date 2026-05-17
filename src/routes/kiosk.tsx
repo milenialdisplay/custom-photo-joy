@@ -7,9 +7,9 @@ import kioskUnit from "@/assets/kiosk-unit.jpg";
 export const Route = createFileRoute("/kiosk")({
   head: () => ({
     meta: [
-      { title: "Kiosk Mode — d'poto" },
+      { title: "Kiosk Mode — dpotopoto.com" },
       { name: "description", content: "Turn any tablet or big monitor into a physical photo booth. Phone-as-remote, standby attract loop, wireless print server." },
-      { property: "og:title", content: "Kiosk Mode — d'poto" },
+      { property: "og:title", content: "Kiosk Mode — dpotopoto.com" },
       { property: "og:description", content: "Physical photo booth in software. Set up in minutes — no app install for guests." },
     ],
   }),
