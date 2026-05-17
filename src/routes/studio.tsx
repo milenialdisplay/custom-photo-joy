@@ -686,7 +686,7 @@ function DraggableBox({
     >
       {children}
       <span
-        onPointerDown={ctl.onPointerDown("resize")}
+        onPointerDown={ctl.onPointerDown("se")}
         onPointerMove={ctl.onPointerMove}
         onPointerUp={ctl.onPointerUp}
         className={`absolute -bottom-1.5 -right-1.5 size-3 cursor-nwse-resize ${accent ? "bg-secondary" : "bg-primary"} shadow-[0_0_8px_currentColor]`}
