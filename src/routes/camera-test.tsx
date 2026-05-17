@@ -91,6 +91,7 @@ function CameraTestPage() {
   const [facing, setFacing] = useState<FacingMode>("environment");
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
 
   async function startCamera() {
     setStatus("starting");
