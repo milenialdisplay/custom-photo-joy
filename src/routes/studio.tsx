@@ -379,6 +379,19 @@ function StudioPage() {
               </div>
             </div>
 
+            {/* Prominent frame quick-picker */}
+            <FrameStrip
+              frames={framesForRatio}
+              activeFrameId={frameId}
+              onPickFrame={setFrameId}
+              hue={frameHue}
+              sat={frameSat}
+              onPickTint={(h, s) => {
+                setFrameHue(h);
+                setFrameSat(s);
+              }}
+            />
+
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
               <span>drag slots · corner = resize · click slot to upload</span>
               <button
