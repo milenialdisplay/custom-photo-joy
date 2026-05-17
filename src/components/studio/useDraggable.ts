@@ -7,18 +7,15 @@ export interface Rect {
   h: number;
 }
 
-type Mode = "move" | "resize";
+export type ResizeEdge = "n" | "s" | "e" | "w" | "se";
+type Mode = "move" | ResizeEdge;
 
 export interface RectOptions {
-  /** Minimum width as normalized fraction of stage (0..1). Default 0.05 */
   minW?: number;
-  /** Minimum height as normalized fraction of stage (0..1). Default 0.05 */
   minH?: number;
-  /** Snap-to-edge threshold as normalized fraction. 0 disables snap. Default 0 */
   snap?: number;
 }
 
-/** Returns pointer handlers for dragging or resizing a normalized rect inside a stage element. */
 export function useRectController(
   stageRef: React.RefObject<HTMLElement | null>,
   rect: Rect,
@@ -47,6 +44,7 @@ export function useRectController(
       const box = stage.getBoundingClientRect();
       const dx = (e.clientX - s.startX) / box.width;
       const dy = (e.clientY - s.startY) / box.height;
+
       if (s.mode === "move") {
         let nx = Math.max(0, Math.min(1 - s.orig.w, s.orig.x + dx));
         let ny = Math.max(0, Math.min(1 - s.orig.h, s.orig.y + dy));
@@ -57,15 +55,27 @@ export function useRectController(
           if (1 - (ny + s.orig.h) < snap) ny = 1 - s.orig.h;
         }
         onChange({ ...s.orig, x: nx, y: ny });
-      } else {
-        let w = Math.max(minW, Math.min(1 - s.orig.x, s.orig.w + dx));
-        let h = Math.max(minH, Math.min(1 - s.orig.y, s.orig.h + dy));
-        if (snap > 0) {
-          if (1 - (s.orig.x + w) < snap) w = 1 - s.orig.x;
-          if (1 - (s.orig.y + h) < snap) h = 1 - s.orig.y;
-        }
-        onChange({ ...s.orig, w, h });
+        return;
       }
+
+      let { x, y, w, h } = s.orig;
+      if (s.mode === "e" || s.mode === "se") {
+        w = Math.max(minW, Math.min(1 - x, s.orig.w + dx));
+      }
+      if (s.mode === "s" || s.mode === "se") {
+        h = Math.max(minH, Math.min(1 - y, s.orig.h + dy));
+      }
+      if (s.mode === "w") {
+        const newX = Math.max(0, Math.min(s.orig.x + s.orig.w - minW, s.orig.x + dx));
+        w = s.orig.w + (s.orig.x - newX);
+        x = newX;
+      }
+      if (s.mode === "n") {
+        const newY = Math.max(0, Math.min(s.orig.y + s.orig.h - minH, s.orig.y + dy));
+        h = s.orig.h + (s.orig.y - newY);
+        y = newY;
+      }
+      onChange({ x, y, w, h });
     },
     [onChange, stageRef, minW, minH, snap],
   );
