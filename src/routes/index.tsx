@@ -32,7 +32,9 @@ function Landing() {
               Turn any screen into a professional capture station. Instant prints, branded frames, pure arcade energy — for parties, weddings, and brand events.
             </p>
             <div className="flex flex-wrap gap-4">
-              <NeonButton size="lg" glow>Start Free Trial</NeonButton>
+              <Link to="/camera-test">
+                <NeonButton size="lg" glow>Start Free Trial</NeonButton>
+              </Link>
               <Link to="/camera-test">
                 <NeonButton size="lg" variant="ghost">Try a Demo Booth</NeonButton>
               </Link>
