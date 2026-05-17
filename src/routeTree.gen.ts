@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as PrinterRouteImport } from './routes/printer'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as CameraTestRouteImport } from './routes/camera-test'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
   path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrinterRoute = PrinterRouteImport.update({
+  id: '/printer',
+  path: '/printer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/camera-test': typeof CameraTestRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
+  '/printer': typeof PrinterRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/camera-test': typeof CameraTestRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
+  '/printer': typeof PrinterRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,28 @@ export interface FileRoutesById {
   '/camera-test': typeof CameraTestRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
+  '/printer': typeof PrinterRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/camera-test' | '/kiosk' | '/pricing' | '/studio'
+  fullPaths:
+    | '/'
+    | '/camera-test'
+    | '/kiosk'
+    | '/pricing'
+    | '/printer'
+    | '/studio'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/camera-test' | '/kiosk' | '/pricing' | '/studio'
-  id: '__root__' | '/' | '/camera-test' | '/kiosk' | '/pricing' | '/studio'
+  to: '/' | '/camera-test' | '/kiosk' | '/pricing' | '/printer' | '/studio'
+  id:
+    | '__root__'
+    | '/'
+    | '/camera-test'
+    | '/kiosk'
+    | '/pricing'
+    | '/printer'
+    | '/studio'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +98,7 @@ export interface RootRouteChildren {
   CameraTestRoute: typeof CameraTestRoute
   KioskRoute: typeof KioskRoute
   PricingRoute: typeof PricingRoute
+  PrinterRoute: typeof PrinterRoute
   StudioRoute: typeof StudioRoute
 }
 
@@ -86,6 +109,13 @@ declare module '@tanstack/react-router' {
       path: '/studio'
       fullPath: '/studio'
       preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/printer': {
+      id: '/printer'
+      path: '/printer'
+      fullPath: '/printer'
+      preLoaderRoute: typeof PrinterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -124,8 +154,19 @@ const rootRouteChildren: RootRouteChildren = {
   CameraTestRoute: CameraTestRoute,
   KioskRoute: KioskRoute,
   PricingRoute: PricingRoute,
+  PrinterRoute: PrinterRoute,
   StudioRoute: StudioRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
