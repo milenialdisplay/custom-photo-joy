@@ -17,6 +17,7 @@ import { PATTERNS } from "@/lib/patterns";
 import { getLayout, type SlotCount } from "@/lib/layouts";
 import { useRectController, type Rect } from "@/components/studio/useDraggable";
 import { exportJPEG, downloadBlob, type ExportState, type SlotState } from "@/lib/studio-export";
+import { CameraCapture } from "@/components/studio/CameraCapture";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
@@ -73,6 +74,7 @@ function StudioPage() {
   const [presetId, setPresetId] = useState<OutputPresetId>("web-1x1");
   const [trial, setTrial] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [cameraSlot, setCameraSlot] = useState<number | null>(null);
 
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -296,6 +298,7 @@ function StudioPage() {
                     onRectChange={(r) => setSlotRect(i, r)}
                     onPick={(f) => setSlotPhoto(i, f)}
                     onClear={() => clearSlotPhoto(i)}
+                    onCamera={() => setCameraSlot(i)}
                   />
                 ))}
 
@@ -577,6 +580,14 @@ function StudioPage() {
       </div>
 
       <SiteFooter />
+
+      <CameraCapture
+        open={cameraSlot !== null}
+        onClose={() => setCameraSlot(null)}
+        onCapture={(f) => {
+          if (cameraSlot !== null) setSlotPhoto(cameraSlot, f);
+        }}
+      />
     </div>
   );
 }
@@ -620,7 +631,7 @@ function Slider({
 }
 
 function PhotoSlot({
-  index, slot, stageRef, minW, minH, onRectChange, onPick, onClear,
+  index, slot, stageRef, minW, minH, onRectChange, onPick, onClear, onCamera,
 }: {
   index: number;
   slot: SlotState;
@@ -630,6 +641,7 @@ function PhotoSlot({
   onRectChange: (r: Rect) => void;
   onPick: (f: File | null) => void;
   onClear: () => void;
+  onCamera: () => void;
 }) {
   const ctl = useRectController(stageRef, slot.rect, onRectChange, { minW, minH, snap: 0.008 });
   const edgeHandle = (edge: "n" | "s" | "e" | "w", cls: string, label: string) => (
@@ -667,17 +679,28 @@ function PhotoSlot({
           </button>
         </>
       ) : (
-        <label
-          className="absolute inset-0 grid cursor-pointer place-items-center bg-card/40 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60 hover:bg-primary/5"
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card/40 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60"
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
           <span className="text-center leading-tight">
-            + photo {index + 1}
+            slot {index + 1}
             <br />
             <span className="text-[8px] text-primary/40">drag center · drag edges to resize</span>
           </span>
-        </label>
+          <div className="flex gap-2">
+            <label className="cursor-pointer rounded border border-primary/50 px-2 py-1 text-[9px] hover:bg-primary/10">
+              <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
+              Upload
+            </label>
+            <button
+              onClick={(e) => { e.stopPropagation(); onCamera(); }}
+              className="rounded border border-secondary/60 px-2 py-1 text-[9px] text-secondary hover:bg-secondary/10"
+            >
+              ● Camera
+            </button>
+          </div>
+        </div>
       )}
       <span className="absolute top-1 left-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] text-primary/80">
         {index + 1}
