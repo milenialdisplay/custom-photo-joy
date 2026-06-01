@@ -209,6 +209,7 @@ def api_location():
         "location_label": CONFIG.get("location_label", "Unset Booth"),
         "ssid": CONFIG.get("ssid", ""),
         "printer_name": CONFIG.get("printer_name", ""),
+        "default_paper_size": CONFIG.get("default_paper_size", "A6"),
         "agent_version": CONFIG.get("agent_version", "0.0.0"),
     }
 
