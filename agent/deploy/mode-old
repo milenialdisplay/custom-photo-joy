@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Switch Dell back to OLD mode: original auto-start app runs on boot, print agent stops.
+# Edit OLD_UNIT / OLD_AUTOSTART below after Step 1 inventory — must match mode-new.
+set -e
+
+OLD_UNIT=""                      # e.g. "kiosk-browser.service"
+OLD_AUTOSTART=""                 # e.g. "/home/elenajaya/.config/autostart/kiosk.desktop"
+
+sudo systemctl disable --now dpoto-agent.service || true
+
+if [ -n "$OLD_AUTOSTART" ] && [ -f "${OLD_AUTOSTART}.disabled" ]; then
+  mv "${OLD_AUTOSTART}.disabled" "$OLD_AUTOSTART"
+fi
+if [ -n "$OLD_UNIT" ]; then
+  sudo systemctl enable --now "$OLD_UNIT"
+fi
+
+echo "old" | sudo tee /etc/dpoto-mode >/dev/null
+echo "✅ OLD MODE active — reboot to confirm the original app comes back up"

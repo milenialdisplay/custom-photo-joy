@@ -1,110 +1,114 @@
-## Goal
+# Plan: Dell Wyse — preserve old setup, add new print agent, toggle between them
 
-Stand up the Printer Booth end-to-end on a **LAN-only, no-internet-required** topology with a **fair multi-user queue**: any guest can submit at any time from their phone, jobs print FIFO, each guest sees their position and gets notified when their print is ready.
+You'll end up with:
+- A **full snapshot** of the Dell as it is today, so you can roll back anytime.
+- **Remote desktop** from your Windows PC (clipboard copy-paste works).
+- The **HP M451** printer wired up to CUPS.
+- The **print agent** installed but NOT auto-starting — controlled by a simple toggle.
+- Two commands: `mode-old` and `mode-new` to switch between the original auto-starting app and the new print-agent setup.
 
-Topology: Browser (phone/tablet) → local Python agent on Dell Wyse → CUPS → HP M451n. App and agent share one contract from day 1 so color tuning and queue UX can iterate against real prints immediately.
+Nothing destructive. The old software stays installed and intact the entire time.
 
-## Part A — App changes (in this repo)
+---
 
-### 1. New route `src/routes/printer.tsx`
-Styled to match `/kiosk` and `/studio`. Sections:
+## Step 1 — Find out what "old" actually is
 
-- **Hero**: "Printer Booth — wired, local, no cloud." CTAs: "Send Print" + "Open Operator Console".
-- **Guest identity card** (first visit): name + color tag (4 swatches: pink/cyan/yellow/lime). Saved to `localStorage` as `{ guest_id (uuid), guest_name, guest_color }`. Reused on every submission.
-- **Connection panel**:
-  - Agent base URL input (default `http://192.168.1.50:8080`), saved to `localStorage`.
-  - Live status pills: "Agent: Online/Offline", "Printer: Ready/Error", "Queue: N waiting" — polls `GET {agent}/queue` every 3s.
-- **Send Print form**:
-  - File source: "Use latest Studio export" or upload.
-  - Paper size: 2R / 4R / A5 / A6 / Square.
-  - Paper preset: "Glossy 200gsm" / "Matte 120gsm" / "Default".
-  - Copies (1–3, capped low to keep queue fair).
-  - "Send" → `POST {agent}/print` with guest fields + file.
-- **My job tracker** (appears after submit): big card showing `#3 in line — ~45s`, your color tag, status (`queued → printing → ready!`). Polls `GET {agent}/jobs/{id}` every 2s. On `done`, switches to "✅ Ready at the printer — look for {color} tag".
-- **Public queue view** (collapsed by default): list of waiting jobs as color dots + first names, so guests see fairness.
-- **429 handling**: cooldown / quota / queue-full toasts with retry timer.
-- **Operator console link**: opens `{agent}/console` in new tab.
+Before we touch anything, we inventory what auto-starts today so the toggle knows what to turn on/off.
 
-### 2. Connect Services card 03 in `src/routes/index.tsx`
-Change card 03's `href` from `undefined` to `"/printer"`. One-line edit.
+Commands you'll run over SSH (I'll guide live):
+- `systemctl list-unit-files --state=enabled` — system services that boot
+- `ls ~/.config/autostart/ 2>/dev/null` — desktop apps that auto-launch
+- `cat /etc/xdg/autostart/*.desktop | grep -E 'Name|Exec'` — system-wide desktop autostart
+- `crontab -l` and `sudo crontab -l` — scheduled jobs
 
-### 3. `head()` metadata on `/printer`
-Unique title, description, og tags per route conventions.
+Output tells us exactly which unit(s) to flip in the toggle.
 
-### 4. Studio export tweak (`src/lib/studio-export.ts`)
-Bake a small **guest tag strip** (name + color square) into the bottom 24px of the exported JPEG — so stacked prints are identifiable at pickup. Toggleable via a "Tag my print" checkbox on `/printer` (on by default).
+## Step 2 — Take a full system snapshot (Timeshift)
 
-### 5. Out of scope for app side (this iteration)
-- No cloud job persistence — queue lives in agent SQLite.
-- No agent auth — LAN-trusted. Future: bearer token.
-- No multi-printer routing.
-
-## Part B — Python agent skeleton (`/agent` folder; deployed manually to Dell)
-
-Added to repo for source control. Dell runs `python -m uvicorn agent.main:app`. Not bundled with the web app.
-
-### Files
-- `agent/main.py` — FastAPI app with endpoints:
-  - `GET /health` → `{ agent, printer: "ready"|"error"|"offline", queue_depth }`
-  - `POST /print` — multipart: `file, paper_size, paper_preset, copies, guest_id, guest_name, guest_color`. Validates, enforces cooldown + quota + max-queue, enqueues. Returns `{ job_id, position, eta_seconds }`.
-  - `GET /jobs/{id}` → `{ status, position, eta_seconds, guest_color }`.
-  - `GET /queue` → list of `{ job_id, guest_name, guest_color, status, paper_size, submitted_at }` (last 50).
-  - `GET /console` → HTML operator UI (drag-to-reorder, cancel, pause/resume, calibration, stats).
-- `agent/queue.py` — SQLite-backed FIFO. Single worker thread pulls `queued` → marks `printing` → runs pipeline → `lp` → marks `done`/`failed`. One job at a time. Tracks `avg_print_seconds` rolling average for ETA.
-- `agent/pipeline.py` — color pipeline:
-  1. sRGB → printer ICC (`magick -profile sRGB.icc -profile HP_M451.icc`).
-  2. Apply preset tone curve JSON (`-modulate`, `-level`, `-unsharp`).
-  3. Resize/fit to paper size at 300 DPI.
-  4. Output TIFF to `/tmp/jobs/{id}.tif`.
-- `agent/printer.py` — `lp -d HP_M451 -o media={size} -n {copies}`. Polls CUPS until job completes or times out (60s).
-- `agent/policy.py` — fair-use rules: per-guest cooldown (default 60s), per-guest event quota (default 5), max queue depth (default 20). Config in `agent/config.json`.
-- `agent/presets/` — `glossy_200.json`, `matte_120.json`, `default.json`. Hand-editable tone curves.
-- `agent/profiles/` — placeholder; user drops `HP_M451.icc` + `sRGB.icc`.
-- `agent/test-chart.png` — bundled calibration chart.
-- `agent/README.md` — install + setup steps:
-  ```
-  sudo apt install cups hplip imagemagick python3-pip
-  hp-setup -i  # discover printer over LAN
-  pip install fastapi uvicorn python-multipart pillow
-  python -m uvicorn agent.main:app --host 0.0.0.0 --port 8080
-  ```
-
-### Contract (locked between app and agent)
+Insurance policy. One-time setup, then a snapshot named `pre-printer-agent`.
 
 ```
-POST /print  (multipart/form-data)
-  file, paper_size, paper_preset, copies (1-3),
-  guest_id, guest_name, guest_color
-  → 200 { job_id, position, eta_seconds }
-  → 429 { error: "cooldown"|"quota_exceeded"|"queue_full", retry_after }
-  → 503 { error: "printer_offline" }
-
-GET /jobs/{id}  → { status: "queued"|"printing"|"done"|"failed",
-                    position, eta_seconds, guest_color, error? }
-
-GET /queue      → [{ job_id, guest_name, guest_color, status,
-                     paper_size, submitted_at }]
-
-GET /health     → { agent, printer, queue_depth }
+sudo apt install -y timeshift
+sudo timeshift --create --comments "pre-printer-agent" --tags D
+sudo timeshift --list
 ```
 
-### Failure handling
-- Paper jam / out of paper → printer status = `error`, worker pauses, all waiting guests see "Printer being refilled".
-- Print timeout >60s → retry once, then `failed`, skip to next.
-- Operator can cancel/reorder/skip any job from console.
+If anything later goes wrong: `sudo timeshift --restore` rolls the whole OS back to today. Old software returns exactly as it was.
 
-## Verification
+## Step 3 — Install xrdp (remote desktop from your PC)
 
-- App: `/` → click card 03 → `/printer` loads. Identity card prompts on first visit.
-- App: submit with no agent → clean offline toast. With agent → "You're #1 — ~15s" card appears.
-- Agent: `curl http://dell.local:8080/health` returns ok. Submit two jobs back-to-back from two phones → both queue, both print sequentially, each phone updates independently.
-- Cooldown: submit twice within 60s → second returns 429.
-- Color: print bundled test chart → tweak `default.json` from `/console` → reprint → compare.
+```
+sudo apt install -y xrdp
+sudo systemctl enable --now xrdp
+sudo ufw allow 3389/tcp   # only if a firewall is active
+```
 
-## Future (not in this plan)
+Then on Windows: **Start → "Remote Desktop Connection" → 192.168.18.41 → log in as `elenajaya`**. Clipboard copy-paste works both directions out of the box.
 
-- Optional cloud fallback (Supabase Realtime) for events without LAN.
-- Ambient "now printing" display screen for the booth.
-- Per-event analytics dashboard.
-- Agent bearer-token auth.
-- Build-your-own ICC with Argyll workflow.
+WinSCP stays for bulk file transfer. xrdp is for actually using the Dell.
+
+## Step 4 — Set up the HP M451n printer
+
+```
+sudo apt install -y cups hplip
+sudo systemctl enable --now cups
+sudo usermod -aG lpadmin elenajaya
+sudo hp-setup -i <PRINTER_IP>   # you'll supply the IP
+lpstat -p -d                    # confirm it shows up
+echo "hello dpotopoto" | lp     # test print
+```
+
+If the printer name CUPS assigns isn't `HP_M451`, we'll edit `agent/config.json` to match.
+
+## Step 5 — Deploy the print agent (installed, NOT auto-starting yet)
+
+Copy the `agent/` folder from this repo to `~/agent` on the Dell via WinSCP. Then:
+
+```
+sudo apt install -y imagemagick python3-pip python3-venv
+cd ~/agent
+python3 -m venv .venv
+.venv/bin/pip install fastapi uvicorn python-multipart pillow
+```
+
+Create a systemd unit `/etc/systemd/system/dpoto-agent.service` that runs uvicorn on port 8080 — but **do not enable it yet**. The toggle controls that.
+
+## Step 6 — The toggle (this is the main feature you asked for)
+
+Two scripts in `/usr/local/bin/`:
+
+**`mode-old`** — restore original boot behavior:
+- `sudo systemctl disable --now dpoto-agent`
+- re-enable whatever auto-starting service/app we found in Step 1
+- prints "✅ OLD MODE active — reboot to confirm"
+
+**`mode-new`** — print-agent mode:
+- `sudo systemctl disable --now <old-app>` (stops the original app from grabbing the screen/resources)
+- `sudo systemctl enable --now dpoto-agent`
+- prints "✅ NEW MODE active — agent at http://192.168.18.41:8080"
+
+`mode-status` — shows which mode is currently active.
+
+After step 6, switching is literally: SSH in, type `mode-old` or `mode-new`, reboot if needed. No reinstalls, no data loss, both setups coexist permanently.
+
+## Step 7 — Verify
+
+- Run `mode-new` → from your phone visit `http://192.168.18.41:8080/console` → submit the bundled test chart → paper comes out.
+- Run `mode-old` → reboot → confirm the original app starts as before.
+- Run `mode-new` again → back to print-agent mode.
+
+---
+
+## Technical notes (for reference)
+
+- Timeshift uses rsync snapshots; doesn't need a separate partition on ext4.
+- xrdp on Ubuntu 22.04+ works with the default GNOME session; if you hit a black screen we'll switch the session to Xorg in `/etc/xrdp/startwm.sh`.
+- The agent service runs as user `elenajaya` so CUPS permissions and `~/agent` paths just work.
+- If the "old" auto-starting app is a graphical kiosk (e.g. Chromium in kiosk mode), it lives in `~/.config/autostart/` and the toggle just renames the `.desktop` file with a `.disabled` suffix instead of touching systemd.
+- All changes are reversible: uninstalling is `apt remove xrdp dpoto-agent`, deleting `~/agent`, and `timeshift --restore` if you want to nuke everything.
+
+## What I need from you to proceed
+
+1. Approve this plan (click Implement).
+2. Be at the SSH prompt — Step 1's inventory commands need to run on the Dell so the toggle is wired to the right service.
+3. Have the HP M451's IP address ready for Step 4.
