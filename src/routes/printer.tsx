@@ -271,6 +271,11 @@ function MainPanel() {
         </div>
 
         <div className="space-y-6">
+          <PrinterStatusBanner
+            health={health}
+            healthError={healthError}
+            jobStatus={activeJobInfo?.status ?? null}
+          />
           <PublicQueue queue={queue} myJobId={activeJob?.job_id ?? null} />
           <OperatorLink agentUrl={agentUrl} />
         </div>
