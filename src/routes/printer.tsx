@@ -166,9 +166,15 @@ function MainPanel() {
   const [activeJobInfo, setActiveJobInfo] = useState<JobResponse | null>(null);
   const [tagPrint, setTagPrint] = useState(true);
 
-  // hydrate
+  // hydrate — auto-create an anonymous booth identity if none exists yet.
+  // Guests wait at the booth and pay there, so no signup step is needed.
   useEffect(() => {
-    setIdentity(loadIdentity());
+    let id = loadIdentity();
+    if (!id) {
+      id = { guest_id: uuid(), guest_name: "Booth Guest", guest_color: DEFAULT_GUEST_COLOR };
+      saveIdentity(id);
+    }
+    setIdentity(id);
     setAgentUrl(loadAgentUrl());
   }, []);
 
@@ -227,33 +233,11 @@ function MainPanel() {
     window.localStorage.setItem(LS_AGENT_URL, url);
   }, []);
 
-  const handleIdentitySave = useCallback((name: string, color: string) => {
-    const id: Identity = {
-      guest_id: identity?.guest_id ?? uuid(),
-      guest_name: name,
-      guest_color: color,
-    };
-    saveIdentity(id);
-    setIdentity(id);
-  }, [identity]);
 
   return (
     <section className="border-y border-primary/10 bg-muted/30 px-6 py-16">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {!identity ? (
-            <IdentityCard onSave={handleIdentitySave} />
-          ) : (
-            <IdentityBadge identity={identity} onEdit={() => setIdentity(null)} />
-          )}
-
-          <ConnectionPanel
-            agentUrl={agentUrl}
-            onChange={handleAgentUrlChange}
-            health={health}
-            healthError={healthError}
-          />
-
           {identity && (
             <SendPrintForm
               identity={identity}
@@ -266,6 +250,13 @@ function MainPanel() {
               }
             />
           )}
+
+          <ConnectionPanel
+            agentUrl={agentUrl}
+            onChange={handleAgentUrlChange}
+            health={health}
+            healthError={healthError}
+          />
 
           {activeJob && (
             <MyJobTracker
@@ -573,17 +564,22 @@ function SendPrintForm({
 
   return (
     <div className="border border-primary/20 bg-background/60 p-6">
-      <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-        // Send_Print
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
+        // Upload_&amp;_Print
       </div>
+      <h2 className="mb-1 text-2xl font-bold tracking-tight">Upload a file to print</h2>
+      <p className="mb-5 text-sm text-foreground/60">
+        Drop an image or document, pick A4 or A5, and send it to the booth printer.
+        Pay at the booth on pickup.
+      </p>
 
       <label className="mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/60">
-        Photo file (JPEG / PNG)
+        File (image or document)
       </label>
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png"
+        accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
         onChange={(e) => {
           const f = e.target.files?.[0] ?? null;
           setFile(f);
@@ -591,6 +587,8 @@ function SendPrintForm({
         }}
         className="mb-3 block w-full text-sm file:mr-4 file:border file:border-primary/30 file:bg-transparent file:px-4 file:py-2 file:font-mono file:text-[10px] file:uppercase file:tracking-[0.2em] file:text-primary hover:file:bg-primary/10"
       />
+
+
 
       {resWarning && (
         <div
