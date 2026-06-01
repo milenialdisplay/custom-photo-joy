@@ -247,19 +247,6 @@ function MainPanel() {
     <section className="border-y border-primary/10 bg-muted/30 px-6 py-16">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {!identity ? (
-            <IdentityCard onSave={handleIdentitySave} />
-          ) : (
-            <IdentityBadge identity={identity} onEdit={() => setIdentity(null)} />
-          )}
-
-          <ConnectionPanel
-            agentUrl={agentUrl}
-            onChange={handleAgentUrlChange}
-            health={health}
-            healthError={healthError}
-          />
-
           {identity && (
             <SendPrintForm
               identity={identity}
@@ -272,6 +259,13 @@ function MainPanel() {
               }
             />
           )}
+
+          <ConnectionPanel
+            agentUrl={agentUrl}
+            onChange={handleAgentUrlChange}
+            health={health}
+            healthError={healthError}
+          />
 
           {activeJob && (
             <MyJobTracker
