@@ -245,6 +245,8 @@ function SetupPage() {
                         chosen={chosen}
                         busy={busy}
                         error={error}
+                        paperSize={paperSize}
+                        onPaperSize={updatePaperSize}
                         onConfigure={configure}
                       />
                     )}
@@ -254,6 +256,7 @@ function SetupPage() {
                         testJob={testJob}
                         testStatus={testStatus}
                         error={error}
+                        paperSize={paperSize}
                         onTest={runTest}
                         onContinue={() => setStep(5)}
                       />
