@@ -622,10 +622,7 @@ function SendPrintForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resWarning, setResWarning] = useState<string | null>(null);
-  const [adjust, setAdjust] = useState<ColorAdjust>(DEFAULT_ADJUST);
   const inputRef = useRef<HTMLInputElement>(null);
-  const isImage = !!file && file.type.startsWith("image/");
-  const filterCss = useMemo(() => buildFilterCss(adjust), [adjust]);
 
   const checkResolution = useCallback(
     (f: File | null, size: (typeof PAPER_SIZES)[number]) => {
