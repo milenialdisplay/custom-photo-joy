@@ -253,7 +253,7 @@ def api_configure(body: ConfigureBody):
     return {
         "ok": True,
         "printer_name": name,
-        "default_paper_size": CONFIG.get("default_paper_size", "A6"),
+        "default_paper_size": CONFIG.get("default_paper_size", "A5"),
         "log": log[-2000:],
     }
 
