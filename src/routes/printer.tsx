@@ -485,12 +485,35 @@ function SendPrintForm({
   onSubmitted: (res: SubmitResponse) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
-  const [paperSize, setPaperSize] = useState<(typeof PAPER_SIZES)[number]>("4R");
-  const [paperPreset, setPaperPreset] = useState(PAPER_PRESETS[0].id);
+  const [paperSize, setPaperSize] = useState<(typeof PAPER_SIZES)[number]>("A4");
   const [copies, setCopies] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resWarning, setResWarning] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const checkResolution = useCallback(
+    (f: File | null, size: (typeof PAPER_SIZES)[number]) => {
+      setResWarning(null);
+      if (!f) return;
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      img.onload = () => {
+        const short = Math.min(img.width, img.height);
+        const long = Math.max(img.width, img.height);
+        const need = MIN_RES[size];
+        if (short < need.short || long < need.long) {
+          setResWarning(
+            `Resolution is lower than standard ${need.label}. Your photo is ${img.width}×${img.height} — print may look blurry.`,
+          );
+        }
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => URL.revokeObjectURL(url);
+      img.src = url;
+    },
+    [],
+  );
 
   const canSubmit = !!file && !submitting && !!health && health.printer !== "offline";
 
