@@ -4,7 +4,7 @@
   "ssid": "dpotopoto-unset",
   "printer_name": "HP_M451",
   "agent_version": "0.2.0",
-  "default_paper_size": "A6",
+  "default_paper_size": "A5",
   "cooldown_seconds": 60,
   "per_guest_quota": 5,
   "max_queue_depth": 20,
