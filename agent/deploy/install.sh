@@ -5,7 +5,13 @@ set -e
 
 echo "==> System packages"
 sudo apt update
-sudo apt install -y cups hplip imagemagick python3-pip python3-venv xrdp timeshift
+sudo apt install -y \
+  cups hplip imagemagick \
+  python3-pip python3-venv \
+  xrdp timeshift \
+  network-manager dnsmasq-base \
+  avahi-utils nmap \
+  qrencode python3-weasyprint
 
 echo "==> CUPS + printing group"
 sudo systemctl enable --now cups
@@ -36,13 +42,14 @@ cat <<EOF
 
 ✅ Install complete.
 
-Next steps (in order):
-  1. sudo timeshift --create --comments "pre-printer-agent" --tags D
-  2. sudo hp-setup -i <PRINTER_IP>          # configure the HP M451
-  3. echo "hello" | lp                       # test print
-  4. Edit /usr/local/bin/mode-new and mode-old:
-        OLD_UNIT / OLD_AUTOSTART  →  the auto-starting app you want to toggle off
-  5. mode-new        # switch to print-agent mode
-     mode-old        # switch back to original setup
-     mode-status     # see which mode is active
+Next: provision this booth with a unique location ID.
+  sudo bash deploy/provision.sh <location-id>      # e.g. mall-a-l2
+
+The provisioning script will:
+  • turn this Dell into a Wi-Fi access point
+  • auto-discover the attached printer and install drivers
+  • generate a printable QR sticker for the booth
+
+Optional, before provisioning:
+  sudo timeshift --create --comments "pre-printer-agent" --tags D
 EOF
