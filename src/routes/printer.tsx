@@ -80,6 +80,13 @@ const MIN_RES: Record<(typeof PAPER_SIZES)[number], { short: number; long: numbe
   A4: { short: 1654, long: 2339, label: "A4 (≥1654 × 2339 px)" },
   A5: { short: 1165, long: 1654, label: "A5 (≥1165 × 1654 px)" },
 };
+// Pay-per-print pricing (IDR). Shown on the identity card and used by the pay button.
+const PRINT_PRICE_IDR: Record<(typeof PAPER_SIZES)[number], number> = {
+  A4: 15000,
+  A5: 10000,
+};
+const DEFAULT_GUEST_COLOR = "#73ffb8";
+const formatIDR = (n: number) => "IDR " + n.toLocaleString("id-ID");
 
 const LS_IDENTITY = "dpoto.printer.identity";
 const LS_AGENT_URL = "dpoto.printer.agent_url";
