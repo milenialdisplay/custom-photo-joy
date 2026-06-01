@@ -1174,25 +1174,39 @@ function PublicQueue({ queue, myJobId }: { queue: QueueItem[]; myJobId: string |
 
 
 function OperatorLink({ agentUrl }: { agentUrl: string }) {
+  const [draft, setDraft] = useState(agentUrl);
+  useEffect(() => setDraft(agentUrl), [agentUrl]);
+  const connect = () => {
+    const url = draft.replace(/\/$/, "");
+    window.localStorage.setItem(LS_AGENT_URL, url);
+    window.location.reload();
+  };
   return (
     <div className="border border-primary/20 bg-background/60 p-6">
       <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-        // Operator
+        // Connect
       </div>
       <p className="mb-4 text-sm text-foreground/60">
-        Full queue control, reorder, pause/resume, and color calibration live on the agent itself.
+        Point the booth at your printer agent on the LAN.
       </p>
-      <a
-        href={`${agentUrl}/console`}
-        target="_blank"
-        rel="noreferrer"
-        className="mr-2 inline-flex border border-primary/30 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] hover:bg-primary/10 hover:border-primary/60"
-      >
-        Open Operator Console ↗
-      </a>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <input
+          className="flex-1 min-w-[10rem] border border-primary/20 bg-background px-3 py-2 font-mono text-xs focus:border-primary focus:outline-none"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={DEFAULT_AGENT_URL}
+        />
+        <button
+          type="button"
+          onClick={connect}
+          className="border border-primary/60 bg-primary/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-primary hover:bg-primary/20"
+        >
+          Connect
+        </button>
+      </div>
       <Link
         to="/printer-setup"
-        className="mt-2 inline-flex border border-primary/30 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] hover:bg-primary/10 hover:border-primary/60"
+        className="inline-flex border border-primary/30 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] hover:bg-primary/10 hover:border-primary/60"
       >
         Booth Setup Wizard →
       </Link>
