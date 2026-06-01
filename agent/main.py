@@ -224,11 +224,15 @@ def api_discover():
 class ConfigureBody(BaseModel):
     ip: str | None = None
     printer_name: str | None = None  # if already installed, just adopt by name
+    default_paper_size: str | None = None
+
+
+VALID_SIZES = {"2R", "4R", "A5", "A6", "Square"}
 
 
 @app.post("/printer/configure")
 def api_configure(body: ConfigureBody):
-    """Install HP driver for the chosen IP, then persist printer_name."""
+    """Install HP driver for the chosen IP, then persist printer_name + default size."""
     name = body.printer_name
     log = ""
     if body.ip and not name:
@@ -241,8 +245,17 @@ def api_configure(body: ConfigureBody):
         return JSONResponse({"error": "no_printer_resolved", "log": log}, status_code=400)
 
     CONFIG["printer_name"] = name
+    if body.default_paper_size:
+        if body.default_paper_size not in VALID_SIZES:
+            return JSONResponse({"error": "invalid_paper_size"}, status_code=400)
+        CONFIG["default_paper_size"] = body.default_paper_size
     (ROOT / "config.json").write_text(json.dumps(CONFIG, indent=2) + "\n")
-    return {"ok": True, "printer_name": name, "log": log[-2000:]}
+    return {
+        "ok": True,
+        "printer_name": name,
+        "default_paper_size": CONFIG.get("default_paper_size", "A6"),
+        "log": log[-2000:],
+    }
 
 
 @app.post("/printer/test")
@@ -262,13 +275,16 @@ def api_test_print():
         except Exception as e:
             raise HTTPException(500, f"no test chart and PIL failed: {e}")
 
+    size = CONFIG.get("default_paper_size", "A6")
+    if size not in VALID_SIZES:
+        size = "A6"
     job_id = "test_" + uuid.uuid4().hex[:8]
     queue.enqueue(
         job_id=job_id, file_path=str(chart),
-        paper_size="A6", paper_preset="default", copies=1,
+        paper_size=size, paper_preset="default", copies=1,
         guest_id="setup-wizard", guest_name="SETUP TEST", guest_color="#1b8c5f",
     )
-    return {"job_id": job_id}
+    return {"job_id": job_id, "paper_size": size}
 
 
 # ════════════════════════ booth: end-user print page ════════════════════════
