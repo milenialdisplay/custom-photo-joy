@@ -228,10 +228,6 @@ function MainPanel() {
     };
   }, [activeJob, agentUrl]);
 
-  const handleAgentUrlChange = useCallback((url: string) => {
-    setAgentUrl(url);
-    window.localStorage.setItem(LS_AGENT_URL, url);
-  }, []);
 
 
   return (
