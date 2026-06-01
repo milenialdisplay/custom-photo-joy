@@ -251,12 +251,6 @@ function MainPanel() {
             />
           )}
 
-          <ConnectionPanel
-            agentUrl={agentUrl}
-            onChange={handleAgentUrlChange}
-            health={health}
-            healthError={healthError}
-          />
 
           {activeJob && (
             <MyJobTracker
