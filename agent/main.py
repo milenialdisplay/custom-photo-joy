@@ -227,7 +227,7 @@ class ConfigureBody(BaseModel):
     default_paper_size: str | None = None
 
 
-VALID_SIZES = {"2R", "4R", "A5", "A6", "Square"}
+VALID_SIZES = {"A4", "A5"}
 
 
 @app.post("/printer/configure")
