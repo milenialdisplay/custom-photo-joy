@@ -275,9 +275,9 @@ def api_test_print():
         except Exception as e:
             raise HTTPException(500, f"no test chart and PIL failed: {e}")
 
-    size = CONFIG.get("default_paper_size", "A6")
+    size = CONFIG.get("default_paper_size", "A5")
     if size not in VALID_SIZES:
-        size = "A6"
+        size = "A5"
     job_id = "test_" + uuid.uuid4().hex[:8]
     queue.enqueue(
         job_id=job_id, file_path=str(chart),
