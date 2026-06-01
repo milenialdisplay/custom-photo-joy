@@ -552,7 +552,7 @@ function SendPrintForm({
     } finally {
       setSubmitting(false);
     }
-  }, [agentUrl, copies, file, identity, onSubmitted, paperPreset, paperSize, tagPrint]);
+  }, [agentUrl, copies, file, identity, onSubmitted, paperSize, tagPrint]);
 
   return (
     <div className="border border-primary/20 bg-background/60 p-6">
