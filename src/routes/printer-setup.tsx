@@ -14,10 +14,22 @@ export const Route = createFileRoute("/printer-setup")({
 });
 
 const LS_AGENT = "dpoto.setup.agent_url";
+const LS_SIZE = "dpoto.setup.paper_size";
 const DEFAULT_AGENT = "http://10.42.0.1:8080";
 
+export type PaperSize = "2R" | "4R" | "A6" | "A5" | "Square";
+
+// Real physical dimensions in mm — drives the sticker preview aspect ratio.
+export const PAPER_SIZES: Record<PaperSize, { w: number; h: number; label: string; hint: string }> = {
+  "2R":     { w: 64,  h: 89,  label: "2R",     hint: "64 × 89 mm · wallet" },
+  "A6":     { w: 105, h: 148, label: "A6",     hint: "105 × 148 mm · postcard" },
+  "4R":     { w: 102, h: 152, label: "4R",     hint: "102 × 152 mm · 4×6 in" },
+  "A5":     { w: 148, h: 210, label: "A5",     hint: "148 × 210 mm · half-letter" },
+  "Square": { w: 102, h: 102, label: "Square", hint: "102 × 102 mm · 4×4 in" },
+};
+
 interface Health { agent: string; printer: "ready" | "error" | "offline"; queue_depth: number; }
-interface Location { location_id: string; location_label: string; ssid: string; printer_name: string; agent_version: string; }
+interface Location { location_id: string; location_label: string; ssid: string; printer_name: string; default_paper_size?: PaperSize; agent_version: string; }
 interface Candidate { ip: string; name: string; source: string; }
 interface DiscoverResp { candidates: Candidate[]; installed: string[]; }
 interface JobResp { status: "queued" | "printing" | "done" | "failed"; position: number; eta_seconds: number; error?: string; }
@@ -49,11 +61,29 @@ function SetupPage() {
   const [location, setLocation] = useState<Location | null>(null);
   const [discover, setDiscover] = useState<DiscoverResp | null>(null);
   const [chosen, setChosen] = useState<{ ip?: string; printer_name?: string } | null>(null);
+  const [paperSize, setPaperSize] = useState<PaperSize>("A6");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scanLog, setScanLog] = useState<string>("");
   const [testJob, setTestJob] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<JobResp | null>(null);
+
+  // Hydrate paper size: localStorage first, then whatever agent reports.
+  useEffect(() => {
+    const ls = localStorage.getItem(LS_SIZE) as PaperSize | null;
+    if (ls && ls in PAPER_SIZES) setPaperSize(ls);
+  }, []);
+  useEffect(() => {
+    const remote = location?.default_paper_size;
+    if (remote && remote in PAPER_SIZES && !localStorage.getItem(LS_SIZE)) {
+      setPaperSize(remote);
+    }
+  }, [location?.default_paper_size]);
+
+  const updatePaperSize = (s: PaperSize) => {
+    setPaperSize(s);
+    localStorage.setItem(LS_SIZE, s);
+  };
 
   useEffect(() => {
     let stop = false;
@@ -113,7 +143,7 @@ function SetupPage() {
     try {
       const r = await fetch(`${agent}/printer/configure`, {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify(chosen),
+        body: JSON.stringify({ ...chosen, default_paper_size: paperSize }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
@@ -121,7 +151,7 @@ function SetupPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "configure failed");
     } finally { setBusy(false); }
-  }, [agent, chosen]);
+  }, [agent, chosen, paperSize]);
 
   const runTest = useCallback(async () => {
     setBusy(true); setError(null); setTestStatus(null);
@@ -215,6 +245,8 @@ function SetupPage() {
                         chosen={chosen}
                         busy={busy}
                         error={error}
+                        paperSize={paperSize}
+                        onPaperSize={updatePaperSize}
                         onConfigure={configure}
                       />
                     )}
@@ -224,11 +256,12 @@ function SetupPage() {
                         testJob={testJob}
                         testStatus={testStatus}
                         error={error}
+                        paperSize={paperSize}
                         onTest={runTest}
                         onContinue={() => setStep(5)}
                       />
                     )}
-                    {n === 5 && <Step5 location={location} />}
+                    {n === 5 && <Step5 location={location} paperSize={paperSize} />}
                   </ActiveCard>
                 );
               }
@@ -437,13 +470,15 @@ function Step2({
 }
 
 function Step3({
-  chosen, busy, error, onConfigure,
+  chosen, busy, error, paperSize, onPaperSize, onConfigure,
 }: {
   chosen: { ip?: string; printer_name?: string } | null;
-  busy: boolean; error: string | null; onConfigure: () => void;
+  busy: boolean; error: string | null;
+  paperSize: PaperSize; onPaperSize: (s: PaperSize) => void;
+  onConfigure: () => void;
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <p className="text-sm text-foreground/60">
         {chosen?.ip
           ? `Will run hp-setup -i -a -x ${chosen.ip} on the Dell, then save the printer name to config.`
@@ -451,6 +486,22 @@ function Step3({
           ? `Will adopt existing CUPS printer "${chosen.printer_name}" as this booth's printer.`
           : "Nothing chosen."}
       </p>
+
+      <div className="space-y-3">
+        <FieldLabel>Default print size</FieldLabel>
+        <SizePicker value={paperSize} onChange={onPaperSize} />
+        <div className="flex items-start gap-4 border border-primary/10 bg-background/40 p-4">
+          <StickerPreview size={paperSize} maxPx={140} />
+          <div className="space-y-1 font-mono text-[11px] text-foreground/60">
+            <div className="text-primary">{PAPER_SIZES[paperSize].label}</div>
+            <div>{PAPER_SIZES[paperSize].hint}</div>
+            <div className="opacity-60">
+              ratio: {(PAPER_SIZES[paperSize].w / PAPER_SIZES[paperSize].h).toFixed(3)}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {error && <p className="font-mono text-[11px] text-destructive/80">{error}</p>}
       <NeonCTA disabled={!chosen || busy} onClick={onConfigure} fullWidth>
         {busy ? "Configuring…" : "Configure printer"}
@@ -460,20 +511,24 @@ function Step3({
 }
 
 function Step4({
-  busy, testJob, testStatus, error, onTest, onContinue,
+  busy, testJob, testStatus, error, paperSize, onTest, onContinue,
 }: {
   busy: boolean; testJob: string | null; testStatus: JobResp | null;
-  error: string | null; onTest: () => void; onContinue: () => void;
+  error: string | null; paperSize: PaperSize;
+  onTest: () => void; onContinue: () => void;
 }) {
   return (
     <div className="space-y-5">
-      <p className="text-sm text-foreground/60">Sends the bundled test chart. Watch the tray.</p>
+      <p className="text-sm text-foreground/60">
+        Sends the bundled test chart at <span className="font-mono text-primary">{PAPER_SIZES[paperSize].label}</span> ({PAPER_SIZES[paperSize].hint}). Watch the tray.
+      </p>
       <NeonCTA disabled={busy} onClick={onTest}>
         {testJob ? "Re-send test" : "Send test print"}
       </NeonCTA>
       {testStatus && (
         <div className="border border-primary/20 bg-background/60 p-4 font-mono text-xs">
           <div>job: {testJob}</div>
+          <div>size: {paperSize}</div>
           <div>status: {testStatus.status}</div>
           {testStatus.position > 0 && <div>position: {testStatus.position}</div>}
           {testStatus.error && <div className="text-destructive">error: {testStatus.error}</div>}
@@ -487,27 +542,143 @@ function Step4({
   );
 }
 
-function Step5({ location }: { location: Location | null }) {
+function Step5({ location, paperSize }: { location: Location | null; paperSize: PaperSize }) {
+  const dims = PAPER_SIZES[paperSize];
   return (
     <div className="space-y-5">
       <p className="text-sm text-foreground/60">
-        The provisioning script generated a sticker PDF on the Dell:
+        The provisioning script generated a sticker PDF on the Dell at <span className="font-mono text-primary">{dims.label}</span>:
       </p>
       <pre className="overflow-auto border border-primary/20 bg-black/40 p-3 font-mono text-[11px] text-primary">
-{`~/agent/booth-stickers/booth-${location?.location_id ?? "<id>"}.pdf`}
+{`~/agent/booth-stickers/booth-${location?.location_id ?? "<id>"}-${paperSize.toLowerCase()}.pdf`}
       </pre>
-      <ol className="space-y-2 text-sm text-foreground/70">
-        <li>1. SCP it off the Dell, or open it on the Dell&apos;s desktop.</li>
-        <li>2. Print A5, laminate, stick on the booth at phone-height.</li>
-        <li>3. Test: phone camera → scan Wi-Fi QR → tap join.</li>
-        <li>4. Scan the App QR → upload a photo → done.</li>
-      </ol>
+
+      <div className="flex flex-col items-center gap-4 border border-primary/20 bg-background/40 p-6 sm:flex-row sm:items-start">
+        <StickerPreview size={paperSize} maxPx={260} withContent location={location} />
+        <ol className="flex-1 space-y-2 text-sm text-foreground/70">
+          <li>1. SCP it off the Dell, or open it on the Dell&apos;s desktop.</li>
+          <li>2. Print {dims.label} ({dims.hint}), laminate, stick at phone-height.</li>
+          <li>3. Test: phone camera → scan Wi-Fi QR → tap join.</li>
+          <li>4. Scan the App QR → upload a photo → done.</li>
+        </ol>
+      </div>
+
       <div className="border border-primary/30 bg-primary/5 p-4 font-mono text-xs">
         <div className="mb-2 font-bold uppercase tracking-[0.2em] text-primary">✓ Booth live</div>
         <div>location: {location?.location_label}</div>
         <div>ssid: {location?.ssid}</div>
+        <div>size: {dims.label} · {dims.hint}</div>
         <div>app url: http://10.42.0.1:8080/booth?loc={location?.location_id}</div>
       </div>
+    </div>
+  );
+}
+
+/* ─────────── size picker + scaled preview ─────────── */
+
+function SizePicker({ value, onChange }: { value: PaperSize; onChange: (s: PaperSize) => void }) {
+  const order: PaperSize[] = ["2R", "A6", "4R", "A5", "Square"];
+  return (
+    <div className="grid grid-cols-2 gap-1 sm:grid-cols-5">
+      {order.map((s) => {
+        const active = s === value;
+        return (
+          <button
+            key={s}
+            type="button"
+            onClick={() => onChange(s)}
+            className={`flex flex-col items-start gap-1 border px-3 py-2.5 text-left transition-colors ${
+              active
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-primary/15 text-foreground/70 hover:border-primary/40"
+            }`}
+          >
+            <span className="font-mono text-xs font-bold uppercase tracking-wider">
+              {PAPER_SIZES[s].label}
+            </span>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-foreground/50">
+              {PAPER_SIZES[s].w}×{PAPER_SIZES[s].h}mm
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Renders a rectangle sized to the paper's real aspect ratio, capped at `maxPx` on the long edge. */
+function StickerPreview({
+  size, maxPx, withContent, location,
+}: {
+  size: PaperSize; maxPx: number; withContent?: boolean; location?: Location | null;
+}) {
+  const { w, h } = PAPER_SIZES[size];
+  const long = Math.max(w, h);
+  const px = (mm: number) => (mm / long) * maxPx;
+  const widthPx = px(w);
+  const heightPx = px(h);
+
+  return (
+    <div
+      role="img"
+      aria-label={`${PAPER_SIZES[size].label} sticker preview`}
+      className="relative shrink-0 border-2 border-primary/60 bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_8px_30px_-12px_rgba(94,242,161,0.35)]"
+      style={{ width: `${widthPx}px`, height: `${heightPx}px` }}
+    >
+      {/* corner crop marks */}
+      <CropMark className="left-0 top-0" />
+      <CropMark className="right-0 top-0 rotate-90" />
+      <CropMark className="left-0 bottom-0 -rotate-90" />
+      <CropMark className="right-0 bottom-0 rotate-180" />
+
+      {withContent && (
+        <div className="absolute inset-0 flex flex-col p-[6%]">
+          <div className="font-mono text-[8px] font-bold uppercase tracking-[0.25em] text-primary">
+            dpotopoto
+          </div>
+          <div className="mt-auto space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <QrPlaceholder label="Wi-Fi" />
+              <QrPlaceholder label="App" />
+            </div>
+            <div className="truncate font-mono text-[7px] uppercase tracking-wider text-foreground/60">
+              {location?.location_label ?? "Booth"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!withContent && (
+        <div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70">
+          {PAPER_SIZES[size].label}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CropMark({ className = "" }: { className?: string }) {
+  return (
+    <span aria-hidden className={`absolute size-2 ${className}`}>
+      <span className="absolute left-0 top-0 h-px w-2 bg-primary/70" />
+      <span className="absolute left-0 top-0 h-2 w-px bg-primary/70" />
+    </span>
+  );
+}
+
+function QrPlaceholder({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div
+        className="aspect-square w-full bg-foreground"
+        style={{
+          backgroundImage:
+            "repeating-conic-gradient(currentColor 0 25%, transparent 0 50%)",
+          backgroundSize: "20% 20%",
+          color: "hsl(var(--background))",
+        }}
+      />
+      <span className="font-mono text-[6px] uppercase tracking-wider text-foreground/60">{label}</span>
     </div>
   );
 }
