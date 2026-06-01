@@ -228,10 +228,6 @@ function MainPanel() {
     };
   }, [activeJob, agentUrl]);
 
-  const handleAgentUrlChange = useCallback((url: string) => {
-    setAgentUrl(url);
-    window.localStorage.setItem(LS_AGENT_URL, url);
-  }, []);
 
 
   return (
@@ -251,12 +247,6 @@ function MainPanel() {
             />
           )}
 
-          <ConnectionPanel
-            agentUrl={agentUrl}
-            onChange={handleAgentUrlChange}
-            health={health}
-            healthError={healthError}
-          />
 
           {activeJob && (
             <MyJobTracker
