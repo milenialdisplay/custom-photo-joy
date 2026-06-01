@@ -1,6 +1,9 @@
 {
+  "location_id": "unset",
+  "location_label": "Unset Booth",
+  "ssid": "dpotopoto-unset",
   "printer_name": "HP_M451",
-  "agent_version": "0.1.0",
+  "agent_version": "0.2.0",
   "cooldown_seconds": 60,
   "per_guest_quota": 5,
   "max_queue_depth": 20,
