@@ -80,6 +80,13 @@ const MIN_RES: Record<(typeof PAPER_SIZES)[number], { short: number; long: numbe
   A4: { short: 1654, long: 2339, label: "A4 (≥1654 × 2339 px)" },
   A5: { short: 1165, long: 1654, label: "A5 (≥1165 × 1654 px)" },
 };
+// Pay-per-print pricing (IDR). Shown on the identity card and used by the pay button.
+const PRINT_PRICE_IDR: Record<(typeof PAPER_SIZES)[number], number> = {
+  A4: 15000,
+  A5: 10000,
+};
+const DEFAULT_GUEST_COLOR = "#73ffb8";
+const formatIDR = (n: number) => "IDR " + n.toLocaleString("id-ID");
 
 const LS_IDENTITY = "dpoto.printer.identity";
 const LS_AGENT_URL = "dpoto.printer.agent_url";
@@ -285,15 +292,14 @@ function MainPanel() {
 
 function IdentityCard({ onSave }: { onSave: (name: string, color: string) => void }) {
   const [name, setName] = useState("");
-  const [color, setColor] = useState(COLOR_TAGS[0].hex);
   return (
     <div className="border border-primary/20 bg-background/60 p-6">
       <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
         // Identify_Yourself
       </div>
-      <h2 className="mb-2 text-2xl font-bold tracking-tight">Pick a name + color tag</h2>
+      <h2 className="mb-2 text-2xl font-bold tracking-tight">Pick a name &amp; pay</h2>
       <p className="mb-6 text-sm text-foreground/60">
-        Stored on this phone only. Used so you can spot your print in the tray.
+        Stored on this phone only. Pay per print at the booth — no subscription, no signup.
       </p>
       <label className="mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/60">
         Display name
@@ -305,34 +311,45 @@ function IdentityCard({ onSave }: { onSave: (name: string, color: string) => voi
         onChange={(e) => setName(e.target.value)}
         maxLength={24}
       />
-      <label className="mb-3 block font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/60">
-        Color tag
-      </label>
-      <div className="mb-6 flex gap-3">
-        {COLOR_TAGS.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => setColor(c.hex)}
-            aria-label={c.label}
-            className={`size-12 border-2 transition-all ${
-              color === c.hex ? "border-foreground scale-110" : "border-transparent opacity-70"
-            }`}
-            style={{ backgroundColor: c.hex }}
-          />
-        ))}
+
+      {/* Pricing — pay per print */}
+      <div className="mb-6 border border-primary/20 bg-background/40 p-4">
+        <div className="mb-3 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[0.3em]">
+          <span className="text-primary">// Pricing</span>
+          <span className="text-foreground/40">per print</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {PAPER_SIZES.map((size) => (
+            <div
+              key={size}
+              className="flex flex-col gap-1 border border-primary/15 bg-background/60 px-3 py-3"
+            >
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/50">
+                {size}
+              </span>
+              <span className="text-xl font-bold tracking-tight">
+                {formatIDR(PRINT_PRICE_IDR[size])}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/40">
+          Charged on send · cash or QRIS at the booth
+        </p>
       </div>
+
       <NeonButton
         size="md"
         glow
         disabled={!name.trim()}
-        onClick={() => name.trim() && onSave(name.trim(), color)}
+        onClick={() => name.trim() && onSave(name.trim(), DEFAULT_GUEST_COLOR)}
       >
-        Save Identity
+        Pay &amp; Continue
       </NeonButton>
     </div>
   );
 }
+
 
 function IdentityBadge({ identity, onEdit }: { identity: Identity; onEdit: () => void }) {
   return (
