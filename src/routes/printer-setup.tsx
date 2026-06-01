@@ -17,15 +17,13 @@ const LS_AGENT = "dpoto.setup.agent_url";
 const LS_SIZE = "dpoto.setup.paper_size";
 const DEFAULT_AGENT = "http://10.42.0.1:8080";
 
-export type PaperSize = "2R" | "4R" | "A6" | "A5" | "Square";
+export type PaperSize = "A4" | "A5";
 
 // Real physical dimensions in mm — drives the sticker preview aspect ratio.
+// Fixed printer margins are handled by the agent (@page margin: 12mm).
 export const PAPER_SIZES: Record<PaperSize, { w: number; h: number; label: string; hint: string }> = {
-  "2R":     { w: 64,  h: 89,  label: "2R",     hint: "64 × 89 mm · wallet" },
-  "A6":     { w: 105, h: 148, label: "A6",     hint: "105 × 148 mm · postcard" },
-  "4R":     { w: 102, h: 152, label: "4R",     hint: "102 × 152 mm · 4×6 in" },
-  "A5":     { w: 148, h: 210, label: "A5",     hint: "148 × 210 mm · half-letter" },
-  "Square": { w: 102, h: 102, label: "Square", hint: "102 × 102 mm · 4×4 in" },
+  "A4": { w: 210, h: 297, label: "A4", hint: "210 × 297 mm · letter-ish" },
+  "A5": { w: 148, h: 210, label: "A5", hint: "148 × 210 mm · half-A4" },
 };
 
 interface Health { agent: string; printer: "ready" | "error" | "offline"; queue_depth: number; }
