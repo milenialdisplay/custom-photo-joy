@@ -1,0 +1,17 @@
+[Unit]
+Description=dpotopoto print agent (FastAPI + CUPS)
+After=network-online.target cups.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=elenajaya
+Group=elenajaya
+WorkingDirectory=/home/elenajaya/agent
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/elenajaya/agent/.venv/bin/python -m uvicorn agent.main:app --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

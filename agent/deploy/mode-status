@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+MODE=$(cat /etc/dpoto-mode 2>/dev/null || echo "unset")
+echo "current mode: $MODE"
+echo
+echo "--- dpoto-agent ---"
+systemctl is-enabled dpoto-agent.service 2>/dev/null || echo "not installed"
+systemctl is-active  dpoto-agent.service 2>/dev/null || true
+echo
+echo "--- printer ---"
+lpstat -p -d 2>/dev/null || echo "cups not responding"
