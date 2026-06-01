@@ -59,7 +59,7 @@ function SetupPage() {
   const [location, setLocation] = useState<Location | null>(null);
   const [discover, setDiscover] = useState<DiscoverResp | null>(null);
   const [chosen, setChosen] = useState<{ ip?: string; printer_name?: string } | null>(null);
-  const [paperSize, setPaperSize] = useState<PaperSize>("A6");
+  const [paperSize, setPaperSize] = useState<PaperSize>("A5");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scanLog, setScanLog] = useState<string>("");
