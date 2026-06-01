@@ -271,6 +271,11 @@ function MainPanel() {
         </div>
 
         <div className="space-y-6">
+          <PrinterStatusBanner
+            health={health}
+            healthError={healthError}
+            jobStatus={activeJobInfo?.status ?? null}
+          />
           <PublicQueue queue={queue} myJobId={activeJob?.job_id ?? null} />
           <OperatorLink agentUrl={agentUrl} />
         </div>
@@ -439,6 +444,135 @@ function ConnectionPanel({
           and the URL above matches its IP.
         </p>
       )}
+    </div>
+  );
+}
+
+// Prominent printer-connection lifecycle banner:
+//   connecting → connected (ready/printing) → "print complete, disconnecting"
+//   → idle/connected again. Also surfaces offline / error states clearly.
+function PrinterStatusBanner({
+  health,
+  healthError,
+  jobStatus,
+}: {
+  health: HealthResponse | null;
+  healthError: string | null;
+  jobStatus: JobStatus | null;
+}) {
+  // detect the moment a job finishes to flash a "disconnecting" pulse
+  const prevJobStatus = useRef<JobStatus | null>(null);
+  const [justFinished, setJustFinished] = useState(false);
+  useEffect(() => {
+    if (
+      prevJobStatus.current === "printing" &&
+      (jobStatus === "done" || jobStatus === "failed")
+    ) {
+      setJustFinished(true);
+      const t = window.setTimeout(() => setJustFinished(false), 6000);
+      prevJobStatus.current = jobStatus;
+      return () => window.clearTimeout(t);
+    }
+    prevJobStatus.current = jobStatus;
+  }, [jobStatus]);
+
+  // first paint, before health has returned and before any error: connecting
+  const connecting = !health && !healthError;
+  const offline = !!healthError && !health;
+  const printerState = health?.printer ?? "offline";
+  const printing = jobStatus === "printing";
+
+  let tone: "connecting" | "connected" | "printing" | "finished" | "error" | "offline";
+  let title: string;
+  let detail: string;
+
+  if (justFinished) {
+    tone = "finished";
+    title = jobStatus === "failed" ? "Print failed — disconnected" : "Print complete — disconnected";
+    detail = "Printer link released. Ready for the next job.";
+  } else if (connecting) {
+    tone = "connecting";
+    title = "Connecting to printer…";
+    detail = "Reaching the booth agent over the LAN.";
+  } else if (offline) {
+    tone = "offline";
+    title = "Printer disconnected";
+    detail = healthError ? `Agent unreachable: ${healthError}` : "Agent offline.";
+  } else if (printerState === "error") {
+    tone = "error";
+    title = "Printer error";
+    detail = "Check paper, ink, and tray, then retry.";
+  } else if (printing) {
+    tone = "printing";
+    title = "Printer connected — printing";
+    detail = "Your job is on the rollers. Stand by at the tray.";
+  } else {
+    tone = "connected";
+    title = "Printer connected";
+    detail = printerState === "ready" ? "Ready to receive jobs." : "Standing by.";
+  }
+
+  const palette: Record<typeof tone, { border: string; dot: string; pulse: boolean; chip: string }> = {
+    connecting: {
+      border: "border-primary/40 bg-primary/5",
+      dot: "bg-primary",
+      pulse: true,
+      chip: "text-primary",
+    },
+    connected: {
+      border: "border-primary/60 bg-primary/10",
+      dot: "bg-primary",
+      pulse: false,
+      chip: "text-primary",
+    },
+    printing: {
+      border: "border-primary/70 bg-primary/15",
+      dot: "bg-primary",
+      pulse: true,
+      chip: "text-primary",
+    },
+    finished: {
+      border: "border-primary/40 bg-primary/5",
+      dot: "bg-primary/60",
+      pulse: true,
+      chip: "text-primary",
+    },
+    error: {
+      border: "border-destructive/60 bg-destructive/10",
+      dot: "bg-destructive",
+      pulse: true,
+      chip: "text-destructive",
+    },
+    offline: {
+      border: "border-destructive/50 bg-destructive/5",
+      dot: "bg-destructive/80",
+      pulse: false,
+      chip: "text-destructive",
+    },
+  };
+  const p = palette[tone];
+
+  return (
+    <div className={`border ${p.border} p-5`}>
+      <div className={`mb-3 font-mono text-[10px] uppercase tracking-[0.3em] ${p.chip}`}>
+        // Printer_Link
+      </div>
+      <div className="flex items-start gap-3">
+        <span className="relative mt-1 flex h-3 w-3 shrink-0">
+          {p.pulse && (
+            <span
+              className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${p.dot}`}
+            />
+          )}
+          <span className={`relative inline-flex h-3 w-3 rounded-full ${p.dot}`} />
+        </span>
+        <div className="min-w-0">
+          <div className="font-mono text-sm uppercase tracking-[0.15em] text-foreground">
+            {title}
+          </div>
+          <div className="mt-1 font-mono text-[11px] text-foreground/60">{detail}</div>
+        </div>
+      </div>
     </div>
   );
 }
