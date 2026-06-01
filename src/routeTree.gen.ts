@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StudioRouteImport } from './routes/studio'
-import { Route as PrinterSetupRouteImport } from './routes/printer-setup'
 import { Route as PrinterRouteImport } from './routes/printer'
 import { Route as PrintRouteImport } from './routes/print'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -21,11 +20,6 @@ import { Route as IndexRouteImport } from './routes/index'
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
   path: '/studio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrinterSetupRoute = PrinterSetupRouteImport.update({
-  id: '/printer-setup',
-  path: '/printer-setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrinterRoute = PrinterRouteImport.update({
@@ -66,7 +60,6 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/print': typeof PrintRoute
   '/printer': typeof PrinterRoute
-  '/printer-setup': typeof PrinterSetupRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRoutesByTo {
@@ -76,7 +69,6 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/print': typeof PrintRoute
   '/printer': typeof PrinterRoute
-  '/printer-setup': typeof PrinterSetupRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRoutesById {
@@ -87,7 +79,6 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/print': typeof PrintRoute
   '/printer': typeof PrinterRoute
-  '/printer-setup': typeof PrinterSetupRoute
   '/studio': typeof StudioRoute
 }
 export interface FileRouteTypes {
@@ -99,7 +90,6 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/print'
     | '/printer'
-    | '/printer-setup'
     | '/studio'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -109,7 +99,6 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/print'
     | '/printer'
-    | '/printer-setup'
     | '/studio'
   id:
     | '__root__'
@@ -119,7 +108,6 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/print'
     | '/printer'
-    | '/printer-setup'
     | '/studio'
   fileRoutesById: FileRoutesById
 }
@@ -130,7 +118,6 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   PrintRoute: typeof PrintRoute
   PrinterRoute: typeof PrinterRoute
-  PrinterSetupRoute: typeof PrinterSetupRoute
   StudioRoute: typeof StudioRoute
 }
 
@@ -141,13 +128,6 @@ declare module '@tanstack/react-router' {
       path: '/studio'
       fullPath: '/studio'
       preLoaderRoute: typeof StudioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/printer-setup': {
-      id: '/printer-setup'
-      path: '/printer-setup'
-      fullPath: '/printer-setup'
-      preLoaderRoute: typeof PrinterSetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/printer': {
@@ -202,9 +182,18 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   PrintRoute: PrintRoute,
   PrinterRoute: PrinterRoute,
-  PrinterSetupRoute: PrinterSetupRoute,
   StudioRoute: StudioRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
