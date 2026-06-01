@@ -72,12 +72,14 @@ const COLOR_TAGS: { id: string; hex: string; label: string }[] = [
   { id: "lime", hex: "#73ffb8", label: "Lime" },
 ];
 
-const PAPER_SIZES = ["2R", "4R", "A5", "A6", "Square"] as const;
-const PAPER_PRESETS = [
-  { id: "glossy_200", label: "Glossy 200 gsm" },
-  { id: "matte_120", label: "Matte 120 gsm" },
-  { id: "default", label: "Default" },
-];
+// Only A4 and A5 are supported. Printer margins are fixed by the agent.
+const PAPER_SIZES = ["A4", "A5"] as const;
+// Minimum pixel dimensions for "standard" print quality (≈200 dpi).
+// Below these, we warn the user that the print may look blurry.
+const MIN_RES: Record<(typeof PAPER_SIZES)[number], { short: number; long: number; label: string }> = {
+  A4: { short: 1654, long: 2339, label: "A4 (≥1654 × 2339 px)" },
+  A5: { short: 1165, long: 1654, label: "A5 (≥1165 × 1654 px)" },
+};
 
 const LS_IDENTITY = "dpoto.printer.identity";
 const LS_AGENT_URL = "dpoto.printer.agent_url";
@@ -483,12 +485,35 @@ function SendPrintForm({
   onSubmitted: (res: SubmitResponse) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
-  const [paperSize, setPaperSize] = useState<(typeof PAPER_SIZES)[number]>("4R");
-  const [paperPreset, setPaperPreset] = useState(PAPER_PRESETS[0].id);
+  const [paperSize, setPaperSize] = useState<(typeof PAPER_SIZES)[number]>("A4");
   const [copies, setCopies] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resWarning, setResWarning] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const checkResolution = useCallback(
+    (f: File | null, size: (typeof PAPER_SIZES)[number]) => {
+      setResWarning(null);
+      if (!f) return;
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      img.onload = () => {
+        const short = Math.min(img.width, img.height);
+        const long = Math.max(img.width, img.height);
+        const need = MIN_RES[size];
+        if (short < need.short || long < need.long) {
+          setResWarning(
+            `Resolution is lower than standard ${need.label}. Your photo is ${img.width}×${img.height} — print may look blurry.`,
+          );
+        }
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => URL.revokeObjectURL(url);
+      img.src = url;
+    },
+    [],
+  );
 
   const canSubmit = !!file && !submitting && !!health && health.printer !== "offline";
 
@@ -504,7 +529,7 @@ function SendPrintForm({
       const fd = new FormData();
       fd.append("file", payloadFile, file.name);
       fd.append("paper_size", paperSize);
-      fd.append("paper_preset", paperPreset);
+      fd.append("paper_preset", "default");
       fd.append("copies", String(copies));
       fd.append("guest_id", identity.guest_id);
       fd.append("guest_name", identity.guest_name);
@@ -527,7 +552,7 @@ function SendPrintForm({
     } finally {
       setSubmitting(false);
     }
-  }, [agentUrl, copies, file, identity, onSubmitted, paperPreset, paperSize, tagPrint]);
+  }, [agentUrl, copies, file, identity, onSubmitted, paperSize, tagPrint]);
 
   return (
     <div className="border border-primary/20 bg-background/60 p-6">
@@ -542,33 +567,37 @@ function SendPrintForm({
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png"
-        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        className="mb-5 block w-full text-sm file:mr-4 file:border file:border-primary/30 file:bg-transparent file:px-4 file:py-2 file:font-mono file:text-[10px] file:uppercase file:tracking-[0.2em] file:text-primary hover:file:bg-primary/10"
+        onChange={(e) => {
+          const f = e.target.files?.[0] ?? null;
+          setFile(f);
+          checkResolution(f, paperSize);
+        }}
+        className="mb-3 block w-full text-sm file:mr-4 file:border file:border-primary/30 file:bg-transparent file:px-4 file:py-2 file:font-mono file:text-[10px] file:uppercase file:tracking-[0.2em] file:text-primary hover:file:bg-primary/10"
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
+      {resWarning && (
+        <div
+          role="alert"
+          className="mb-5 border border-yellow-400/40 bg-yellow-400/10 px-3 py-2 font-mono text-[11px] text-yellow-300"
+        >
+          ⚠ {resWarning}
+        </div>
+      )}
+
+      <div className="mb-5 grid grid-cols-2 gap-4">
         <Field label="Paper size">
           <select
             className="w-full border border-primary/20 bg-background px-3 py-2 font-mono text-xs"
             value={paperSize}
-            onChange={(e) => setPaperSize(e.target.value as (typeof PAPER_SIZES)[number])}
+            onChange={(e) => {
+              const v = e.target.value as (typeof PAPER_SIZES)[number];
+              setPaperSize(v);
+              checkResolution(file, v);
+            }}
           >
             {PAPER_SIZES.map((p) => (
               <option key={p} value={p}>
                 {p}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Preset">
-          <select
-            className="w-full border border-primary/20 bg-background px-3 py-2 font-mono text-xs"
-            value={paperPreset}
-            onChange={(e) => setPaperPreset(e.target.value)}
-          >
-            {PAPER_PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
               </option>
             ))}
           </select>
@@ -584,6 +613,7 @@ function SendPrintForm({
           />
         </Field>
       </div>
+
 
       <label className="mb-5 flex items-center gap-3 text-sm">
         <input

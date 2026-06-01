@@ -227,7 +227,7 @@ class ConfigureBody(BaseModel):
     default_paper_size: str | None = None
 
 
-VALID_SIZES = {"2R", "4R", "A5", "A6", "Square"}
+VALID_SIZES = {"A4", "A5"}
 
 
 @app.post("/printer/configure")
@@ -253,7 +253,7 @@ def api_configure(body: ConfigureBody):
     return {
         "ok": True,
         "printer_name": name,
-        "default_paper_size": CONFIG.get("default_paper_size", "A6"),
+        "default_paper_size": CONFIG.get("default_paper_size", "A5"),
         "log": log[-2000:],
     }
 
@@ -275,9 +275,9 @@ def api_test_print():
         except Exception as e:
             raise HTTPException(500, f"no test chart and PIL failed: {e}")
 
-    size = CONFIG.get("default_paper_size", "A6")
+    size = CONFIG.get("default_paper_size", "A5")
     if size not in VALID_SIZES:
-        size = "A6"
+        size = "A5"
     job_id = "test_" + uuid.uuid4().hex[:8]
     queue.enqueue(
         job_id=job_id, file_path=str(chart),

@@ -17,15 +17,13 @@ const LS_AGENT = "dpoto.setup.agent_url";
 const LS_SIZE = "dpoto.setup.paper_size";
 const DEFAULT_AGENT = "http://10.42.0.1:8080";
 
-export type PaperSize = "2R" | "4R" | "A6" | "A5" | "Square";
+export type PaperSize = "A4" | "A5";
 
 // Real physical dimensions in mm — drives the sticker preview aspect ratio.
+// Fixed printer margins are handled by the agent (@page margin: 12mm).
 export const PAPER_SIZES: Record<PaperSize, { w: number; h: number; label: string; hint: string }> = {
-  "2R":     { w: 64,  h: 89,  label: "2R",     hint: "64 × 89 mm · wallet" },
-  "A6":     { w: 105, h: 148, label: "A6",     hint: "105 × 148 mm · postcard" },
-  "4R":     { w: 102, h: 152, label: "4R",     hint: "102 × 152 mm · 4×6 in" },
-  "A5":     { w: 148, h: 210, label: "A5",     hint: "148 × 210 mm · half-letter" },
-  "Square": { w: 102, h: 102, label: "Square", hint: "102 × 102 mm · 4×4 in" },
+  "A4": { w: 210, h: 297, label: "A4", hint: "210 × 297 mm · letter-ish" },
+  "A5": { w: 148, h: 210, label: "A5", hint: "148 × 210 mm · half-A4" },
 };
 
 interface Health { agent: string; printer: "ready" | "error" | "offline"; queue_depth: number; }
@@ -61,7 +59,7 @@ function SetupPage() {
   const [location, setLocation] = useState<Location | null>(null);
   const [discover, setDiscover] = useState<DiscoverResp | null>(null);
   const [chosen, setChosen] = useState<{ ip?: string; printer_name?: string } | null>(null);
-  const [paperSize, setPaperSize] = useState<PaperSize>("A6");
+  const [paperSize, setPaperSize] = useState<PaperSize>("A5");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scanLog, setScanLog] = useState<string>("");
@@ -577,9 +575,10 @@ function Step5({ location, paperSize }: { location: Location | null; paperSize: 
 /* ─────────── size picker + scaled preview ─────────── */
 
 function SizePicker({ value, onChange }: { value: PaperSize; onChange: (s: PaperSize) => void }) {
-  const order: PaperSize[] = ["2R", "A6", "4R", "A5", "Square"];
+  const order: PaperSize[] = ["A5", "A4"];
   return (
-    <div className="grid grid-cols-2 gap-1 sm:grid-cols-5">
+    <div className="grid grid-cols-2 gap-1">
+
       {order.map((s) => {
         const active = s === value;
         return (
