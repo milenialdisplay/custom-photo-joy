@@ -584,6 +584,8 @@ function SendPrintForm({
         </div>
       )}
 
+      <PrintPreview file={file} paperSize={paperSize} />
+
       <div className="mb-5 grid grid-cols-2 gap-4">
         <Field label="Paper size">
           <select
@@ -650,6 +652,164 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
+// ───────────────────────────── print preview ─────────────────────────────
+
+// Physical paper dimensions in mm. The agent applies a fixed 12mm safe margin
+// inside the printable area, so we mirror that here for an accurate preview.
+const PAPER_MM: Record<(typeof PAPER_SIZES)[number], { w: number; h: number }> = {
+  A4: { w: 210, h: 297 },
+  A5: { w: 148, h: 210 },
+};
+const SAFE_MARGIN_MM = 12;
+const CROP_MARK_MM = 5;
+const CROP_OFFSET_MM = 3;
+
+function PrintPreview({
+  file,
+  paperSize,
+}: {
+  file: File | null;
+  paperSize: (typeof PAPER_SIZES)[number];
+}) {
+  const [imgUrl, setImgUrl] = useState<string | null>(null);
+  const [imgDims, setImgDims] = useState<{ w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setImgUrl(null);
+      setImgDims(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setImgUrl(url);
+    const probe = new Image();
+    probe.onload = () => setImgDims({ w: probe.width, h: probe.height });
+    probe.src = url;
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  const paper = PAPER_MM[paperSize];
+  // Fit image inside safe area, preserving aspect ratio (contain).
+  const safeW = paper.w - SAFE_MARGIN_MM * 2;
+  const safeH = paper.h - SAFE_MARGIN_MM * 2;
+  let fit = { w: safeW, h: safeH, x: SAFE_MARGIN_MM, y: SAFE_MARGIN_MM };
+  if (imgDims) {
+    const ar = imgDims.w / imgDims.h;
+    const safeAr = safeW / safeH;
+    if (ar > safeAr) {
+      const h = safeW / ar;
+      fit = { w: safeW, h, x: SAFE_MARGIN_MM, y: SAFE_MARGIN_MM + (safeH - h) / 2 };
+    } else {
+      const w = safeH * ar;
+      fit = { w, h: safeH, x: SAFE_MARGIN_MM + (safeW - w) / 2, y: SAFE_MARGIN_MM };
+    }
+  }
+
+  // Crop marks: short ticks just outside each corner of the safe area.
+  const m = SAFE_MARGIN_MM;
+  const off = CROP_OFFSET_MM;
+  const len = CROP_MARK_MM;
+  const corners = [
+    { x: m, y: m },
+    { x: paper.w - m, y: m },
+    { x: m, y: paper.h - m },
+    { x: paper.w - m, y: paper.h - m },
+  ];
+
+  return (
+    <div className="mb-5 border border-primary/20 bg-background/40 p-4">
+      <div className="mb-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em]">
+        <span className="text-primary">// Print_Preview</span>
+        <span className="text-foreground/50">
+          {paperSize} · {paper.w}×{paper.h}mm · 12mm safe margin
+        </span>
+      </div>
+      <div className="flex justify-center">
+        <svg
+          viewBox={`0 0 ${paper.w} ${paper.h}`}
+          className="h-auto w-full max-w-[260px] bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.15),0_10px_30px_-10px_rgba(0,0,0,0.4)]"
+          style={{ aspectRatio: `${paper.w} / ${paper.h}` }}
+          aria-label={`Print preview at ${paperSize}`}
+        >
+          {/* Paper background */}
+          <rect x={0} y={0} width={paper.w} height={paper.h} fill="#ffffff" />
+
+          {/* Image / placeholder inside safe area */}
+          {imgUrl ? (
+            <image
+              href={imgUrl}
+              x={fit.x}
+              y={fit.y}
+              width={fit.w}
+              height={fit.h}
+              preserveAspectRatio="xMidYMid meet"
+            />
+          ) : (
+            <rect
+              x={SAFE_MARGIN_MM}
+              y={SAFE_MARGIN_MM}
+              width={safeW}
+              height={safeH}
+              fill="#f3f3f3"
+              stroke="#cccccc"
+              strokeWidth={0.2}
+              strokeDasharray="2 2"
+            />
+          )}
+
+          {/* Safe-area outline (dashed) */}
+          <rect
+            x={SAFE_MARGIN_MM}
+            y={SAFE_MARGIN_MM}
+            width={safeW}
+            height={safeH}
+            fill="none"
+            stroke="#2dd4a8"
+            strokeWidth={0.25}
+            strokeDasharray="1.5 1.5"
+            opacity={0.7}
+          />
+
+          {/* Crop marks at the four corners of the safe area */}
+          <g stroke="#0a0a0a" strokeWidth={0.3}>
+            {corners.map((c, i) => {
+              const dx = c.x < paper.w / 2 ? -1 : 1;
+              const dy = c.y < paper.h / 2 ? -1 : 1;
+              return (
+                <g key={i}>
+                  <line
+                    x1={c.x + dx * off}
+                    y1={c.y}
+                    x2={c.x + dx * (off + len)}
+                    y2={c.y}
+                  />
+                  <line
+                    x1={c.x}
+                    y1={c.y + dy * off}
+                    x2={c.x}
+                    y2={c.y + dy * (off + len)}
+                  />
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
+      <div className="mt-3 flex justify-center gap-4 font-mono text-[9px] uppercase tracking-[0.2em] text-foreground/50">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-px w-3 border-t border-dashed border-primary" />
+          Safe area
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2 w-2 border-l border-t border-foreground" />
+          Crop marks
+        </span>
+      </div>
+    </div>
+  );
+}
+
 
 // ───────────────────────────── my job tracker ─────────────────────────────
 
