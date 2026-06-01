@@ -575,9 +575,10 @@ function Step5({ location, paperSize }: { location: Location | null; paperSize: 
 /* ─────────── size picker + scaled preview ─────────── */
 
 function SizePicker({ value, onChange }: { value: PaperSize; onChange: (s: PaperSize) => void }) {
-  const order: PaperSize[] = ["2R", "A6", "4R", "A5", "Square"];
+  const order: PaperSize[] = ["A5", "A4"];
   return (
-    <div className="grid grid-cols-2 gap-1 sm:grid-cols-5">
+    <div className="grid grid-cols-2 gap-1">
+
       {order.map((s) => {
         const active = s === value;
         return (
