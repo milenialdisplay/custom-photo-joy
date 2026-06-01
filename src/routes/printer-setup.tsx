@@ -61,11 +61,29 @@ function SetupPage() {
   const [location, setLocation] = useState<Location | null>(null);
   const [discover, setDiscover] = useState<DiscoverResp | null>(null);
   const [chosen, setChosen] = useState<{ ip?: string; printer_name?: string } | null>(null);
+  const [paperSize, setPaperSize] = useState<PaperSize>("A6");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scanLog, setScanLog] = useState<string>("");
   const [testJob, setTestJob] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<JobResp | null>(null);
+
+  // Hydrate paper size: localStorage first, then whatever agent reports.
+  useEffect(() => {
+    const ls = localStorage.getItem(LS_SIZE) as PaperSize | null;
+    if (ls && ls in PAPER_SIZES) setPaperSize(ls);
+  }, []);
+  useEffect(() => {
+    const remote = location?.default_paper_size;
+    if (remote && remote in PAPER_SIZES && !localStorage.getItem(LS_SIZE)) {
+      setPaperSize(remote);
+    }
+  }, [location?.default_paper_size]);
+
+  const updatePaperSize = (s: PaperSize) => {
+    setPaperSize(s);
+    localStorage.setItem(LS_SIZE, s);
+  };
 
   useEffect(() => {
     let stop = false;
