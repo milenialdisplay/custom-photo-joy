@@ -261,7 +261,7 @@ function SetupPage() {
                         onContinue={() => setStep(5)}
                       />
                     )}
-                    {n === 5 && <Step5 location={location} />}
+                    {n === 5 && <Step5 location={location} paperSize={paperSize} />}
                   </ActiveCard>
                 );
               }
