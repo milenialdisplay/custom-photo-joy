@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -1204,12 +1204,6 @@ function OperatorLink({ agentUrl }: { agentUrl: string }) {
           Connect
         </button>
       </div>
-      <Link
-        to="/printer-setup"
-        className="inline-flex border border-primary/30 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] hover:bg-primary/10 hover:border-primary/60"
-      >
-        Booth Setup Wizard →
-      </Link>
     </div>
   );
 }
