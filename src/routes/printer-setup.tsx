@@ -143,7 +143,7 @@ function SetupPage() {
     try {
       const r = await fetch(`${agent}/printer/configure`, {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify(chosen),
+        body: JSON.stringify({ ...chosen, default_paper_size: paperSize }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
@@ -151,7 +151,7 @@ function SetupPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "configure failed");
     } finally { setBusy(false); }
-  }, [agent, chosen]);
+  }, [agent, chosen, paperSize]);
 
   const runTest = useCallback(async () => {
     setBusy(true); setError(null); setTestStatus(null);
