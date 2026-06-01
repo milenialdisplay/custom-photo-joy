@@ -567,9 +567,22 @@ function SendPrintForm({
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png"
-        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        className="mb-5 block w-full text-sm file:mr-4 file:border file:border-primary/30 file:bg-transparent file:px-4 file:py-2 file:font-mono file:text-[10px] file:uppercase file:tracking-[0.2em] file:text-primary hover:file:bg-primary/10"
+        onChange={(e) => {
+          const f = e.target.files?.[0] ?? null;
+          setFile(f);
+          checkResolution(f, paperSize);
+        }}
+        className="mb-3 block w-full text-sm file:mr-4 file:border file:border-primary/30 file:bg-transparent file:px-4 file:py-2 file:font-mono file:text-[10px] file:uppercase file:tracking-[0.2em] file:text-primary hover:file:bg-primary/10"
       />
+
+      {resWarning && (
+        <div
+          role="alert"
+          className="mb-5 border border-yellow-400/40 bg-yellow-400/10 px-3 py-2 font-mono text-[11px] text-yellow-300"
+        >
+          ⚠ {resWarning}
+        </div>
+      )}
 
       <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Field label="Paper size">
