@@ -529,7 +529,7 @@ function SendPrintForm({
       const fd = new FormData();
       fd.append("file", payloadFile, file.name);
       fd.append("paper_size", paperSize);
-      fd.append("paper_preset", paperPreset);
+      fd.append("paper_preset", "default");
       fd.append("copies", String(copies));
       fd.append("guest_id", identity.guest_id);
       fd.append("guest_name", identity.guest_name);
