@@ -233,15 +233,6 @@ function MainPanel() {
     window.localStorage.setItem(LS_AGENT_URL, url);
   }, []);
 
-  const handleIdentitySave = useCallback((name: string, color: string) => {
-    const id: Identity = {
-      guest_id: identity?.guest_id ?? uuid(),
-      guest_name: name,
-      guest_color: color,
-    };
-    saveIdentity(id);
-    setIdentity(id);
-  }, [identity]);
 
   return (
     <section className="border-y border-primary/10 bg-muted/30 px-6 py-16">
