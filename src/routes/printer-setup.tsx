@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { NeonButton } from "@/components/site/NeonButton";
 
 export const Route = createFileRoute("/printer-setup")({
   head: () => ({
@@ -17,7 +16,6 @@ export const Route = createFileRoute("/printer-setup")({
 const LS_AGENT = "dpoto.setup.agent_url";
 const DEFAULT_AGENT = "http://10.42.0.1:8080";
 
-// ─── types ───
 interface Health { agent: string; printer: "ready" | "error" | "offline"; queue_depth: number; }
 interface Location { location_id: string; location_label: string; ssid: string; printer_name: string; agent_version: string; }
 interface Candidate { ip: string; name: string; source: string; }
@@ -25,6 +23,22 @@ interface DiscoverResp { candidates: Candidate[]; installed: string[]; }
 interface JobResp { status: "queued" | "printing" | "done" | "failed"; position: number; eta_seconds: number; error?: string; }
 
 type Step = 1 | 2 | 3 | 4 | 5;
+
+const STEP_LABELS: Record<Step, string> = {
+  1: "Connect",
+  2: "Discover",
+  3: "Config",
+  4: "Test",
+  5: "Sticker",
+};
+
+const STEP_TITLES: Record<Step, string> = {
+  1: "Connect to the booth agent",
+  2: "Find the printer on the LAN",
+  3: "Install driver & adopt",
+  4: "Print a test page",
+  5: "Print the booth QR sticker",
+};
 
 function SetupPage() {
   const [agent, setAgent] = useState(DEFAULT_AGENT);
@@ -41,7 +55,6 @@ function SetupPage() {
   const [testJob, setTestJob] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<JobResp | null>(null);
 
-  // Step 1: poll /health + /api/location
   useEffect(() => {
     let stop = false;
     const tick = async () => {
@@ -63,7 +76,6 @@ function SetupPage() {
     return () => { stop = true; window.clearInterval(t); };
   }, [agent]);
 
-  // Poll test job
   useEffect(() => {
     if (!testJob) return;
     let stop = false;
@@ -126,273 +138,376 @@ function SetupPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteNav />
-      <section className="relative overflow-hidden px-6 pt-16 pb-10">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-            // Booth_Setup_Wizard
+
+      <main className="px-6 py-16">
+        <div className="mx-auto w-full max-w-2xl space-y-8">
+          {/* HEADER */}
+          <header className="space-y-3">
+            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">
+              <span>//</span>
+              <span>Booth_Setup_Wizard</span>
+            </div>
+            <h1 className="font-mono text-5xl font-black uppercase leading-none tracking-tighter md:text-6xl">
+              Provision<br />This Booth
+            </h1>
+            <p className="max-w-md text-sm leading-relaxed text-foreground/50">
+              One screen, five steps. Run this from a laptop joined to the booth&apos;s
+              Wi-Fi (or wired into the Dell). When the test page prints, you&apos;re done.
+            </p>
+          </header>
+
+          {/* STEP STRIP */}
+          <nav className="grid grid-cols-5 gap-1 border border-primary/15 bg-muted/40 p-1">
+            {([1, 2, 3, 4, 5] as Step[]).map((n) => {
+              const state = n < step ? "done" : n === step ? "active" : "todo";
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => n <= step && setStep(n)}
+                  className={`px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                    state === "active"
+                      ? "bg-primary text-primary-foreground"
+                      : state === "done"
+                      ? "text-primary/80 hover:bg-primary/10"
+                      : "text-foreground/40 cursor-default"
+                  }`}
+                >
+                  {n}. {STEP_LABELS[n]}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* STEPS */}
+          <div className="space-y-3">
+            {([1, 2, 3, 4, 5] as Step[]).map((n) => {
+              const active = n === step;
+              const done = n < step;
+              if (active) {
+                return (
+                  <ActiveCard key={n} n={n} title={STEP_TITLES[n]}>
+                    {n === 1 && (
+                      <Step1
+                        agent={agent}
+                        defaultAgent={DEFAULT_AGENT}
+                        onSave={saveAgent}
+                        health={health}
+                        location={location}
+                        error={error}
+                        onContinue={() => setStep(2)}
+                      />
+                    )}
+                    {n === 2 && (
+                      <Step2
+                        busy={busy}
+                        discover={discover}
+                        scanLog={scanLog}
+                        chosen={chosen}
+                        setChosen={setChosen}
+                        runDiscover={runDiscover}
+                        error={error}
+                        onContinue={() => setStep(3)}
+                      />
+                    )}
+                    {n === 3 && (
+                      <Step3
+                        chosen={chosen}
+                        busy={busy}
+                        error={error}
+                        onConfigure={configure}
+                      />
+                    )}
+                    {n === 4 && (
+                      <Step4
+                        busy={busy}
+                        testJob={testJob}
+                        testStatus={testStatus}
+                        error={error}
+                        onTest={runTest}
+                        onContinue={() => setStep(5)}
+                      />
+                    )}
+                    {n === 5 && <Step5 location={location} />}
+                  </ActiveCard>
+                );
+              }
+              return <StubCard key={n} n={n} title={STEP_TITLES[n]} done={done} onJump={() => done && setStep(n)} />;
+            })}
           </div>
-          <h1 className="mb-3 text-4xl font-bold uppercase tracking-tighter md:text-6xl">
-            Provision this booth
-          </h1>
-          <p className="max-w-xl text-sm text-foreground/60">
-            One screen, five steps. Run this from a laptop joined to the booth&apos;s
-            Wi-Fi (or wired into the Dell). When the test page prints, you&apos;re done.
-          </p>
         </div>
-      </section>
+      </main>
 
-      <section className="border-y border-primary/10 bg-muted/30 px-6 py-12">
-        <div className="mx-auto max-w-4xl space-y-6">
-          <Stepper current={step} />
-
-          {/* STEP 1 — Connect */}
-          <StepCard n={1} active={step === 1} done={step > 1} title="Connect to the booth agent">
-            <label className="mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] text-foreground/60">
-              Agent URL
-            </label>
-            <div className="mb-4 flex gap-2">
-              <input
-                className="flex-1 border border-primary/20 bg-background px-3 py-2 font-mono text-xs focus:border-primary focus:outline-none"
-                defaultValue={agent}
-                onBlur={(e) => saveAgent(e.target.value)}
-                placeholder={DEFAULT_AGENT}
-              />
-            </div>
-            <div className="mb-3 flex flex-wrap gap-2">
-              <Pill ok={!!health} label={health ? "Agent online" : "Agent offline"} />
-              {location && (
-                <>
-                  <Pill ok label={`ID: ${location.location_id}`} neutral />
-                  <Pill ok label={`SSID: ${location.ssid || "—"}`} neutral />
-                  <Pill
-                    ok={!!location.printer_name && location.printer_name !== "HP_M451"}
-                    label={location.printer_name ? `Printer cfg: ${location.printer_name}` : "No printer"}
-                    neutral
-                  />
-                </>
-              )}
-            </div>
-            {error && step === 1 && (
-              <p className="font-mono text-[11px] text-destructive/80">Cannot reach agent: {error}</p>
-            )}
-            <div className="mt-4">
-              <NeonButton size="md" disabled={!health} onClick={() => setStep(2)}>
-                Continue
-              </NeonButton>
-            </div>
-          </StepCard>
-
-          {/* STEP 2 — Discover */}
-          <StepCard n={2} active={step === 2} done={step > 2} title="Find the printer on the LAN">
-            <p className="mb-4 text-sm text-foreground/60">
-              Scans mDNS (Bonjour) and port 9100 on the local subnet.
-            </p>
-            <div className="mb-4 flex gap-3">
-              <NeonButton size="md" onClick={runDiscover} disabled={busy}>
-                {busy ? "Scanning…" : discover ? "Re-scan" : "Scan now"}
-              </NeonButton>
-              {scanLog && <span className="self-center font-mono text-[11px] text-foreground/50">{scanLog}</span>}
-            </div>
-
-            {discover && (
-              <div className="space-y-2">
-                {discover.installed.length > 0 && (
-                  <div className="border border-primary/30 bg-primary/5 p-3">
-                    <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
-                      Already installed in CUPS
-                    </div>
-                    {discover.installed.map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setChosen({ printer_name: n })}
-                        className={`mr-2 mb-2 border px-3 py-2 font-mono text-xs ${
-                          chosen?.printer_name === n
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-primary/20 hover:border-primary/50"
-                        }`}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {discover.candidates.length === 0 ? (
-                  <p className="font-mono text-[11px] text-foreground/50">
-                    No network printers discovered. Plug via USB and use hp-setup on the Dell,
-                    or pick a CUPS-installed printer above.
-                  </p>
-                ) : (
-                  discover.candidates.map((c) => (
-                    <button
-                      key={c.ip}
-                      type="button"
-                      onClick={() => setChosen({ ip: c.ip })}
-                      className={`flex w-full items-center justify-between border p-3 text-left ${
-                        chosen?.ip === c.ip
-                          ? "border-primary bg-primary/10"
-                          : "border-primary/20 hover:border-primary/50"
-                      }`}
-                    >
-                      <span>
-                        <span className="font-mono text-sm">{c.ip}</span>
-                        <span className="ml-3 text-xs text-foreground/60">{c.name}</span>
-                      </span>
-                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
-                        {c.source}
-                      </span>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-
-            <div className="mt-5">
-              <NeonButton size="md" disabled={!chosen} onClick={() => setStep(3)}>
-                Continue
-              </NeonButton>
-            </div>
-          </StepCard>
-
-          {/* STEP 3 — Configure */}
-          <StepCard n={3} active={step === 3} done={step > 3} title="Install driver & adopt">
-            <p className="mb-4 text-sm text-foreground/60">
-              {chosen?.ip
-                ? `Will run hp-setup -i -a -x ${chosen.ip} on the Dell, then save the printer name to config.`
-                : chosen?.printer_name
-                ? `Will adopt existing CUPS printer "${chosen.printer_name}" as this booth's printer.`
-                : "Nothing chosen."}
-            </p>
-            {error && step === 3 && (
-              <p className="mb-3 font-mono text-[11px] text-destructive/80">{error}</p>
-            )}
-            <NeonButton size="md" disabled={!chosen || busy} onClick={configure}>
-              {busy ? "Configuring…" : "Configure printer"}
-            </NeonButton>
-          </StepCard>
-
-          {/* STEP 4 — Test print */}
-          <StepCard n={4} active={step === 4} done={step > 4} title="Print a test page">
-            <p className="mb-4 text-sm text-foreground/60">
-              Sends the bundled test chart. Watch the tray.
-            </p>
-            <div className="mb-4">
-              <NeonButton size="md" disabled={busy} onClick={runTest}>
-                {testJob ? "Re-send test" : "Send test print"}
-              </NeonButton>
-            </div>
-            {testStatus && (
-              <div className="border border-primary/20 bg-background/60 p-4 font-mono text-xs">
-                <div>job: {testJob}</div>
-                <div>status: {testStatus.status}</div>
-                {testStatus.position > 0 && <div>position: {testStatus.position}</div>}
-                {testStatus.error && (
-                  <div className="text-destructive">error: {testStatus.error}</div>
-                )}
-              </div>
-            )}
-            {error && step === 4 && (
-              <p className="mt-3 font-mono text-[11px] text-destructive/80">{error}</p>
-            )}
-            <div className="mt-4">
-              <NeonButton
-                size="md"
-                disabled={testStatus?.status !== "done"}
-                onClick={() => setStep(5)}
-              >
-                It printed → finish
-              </NeonButton>
-            </div>
-          </StepCard>
-
-          {/* STEP 5 — Sticker */}
-          <StepCard n={5} active={step === 5} done={false} title="Print the booth QR sticker">
-            <p className="mb-3 text-sm text-foreground/60">
-              The provisioning script generated a sticker PDF on the Dell:
-            </p>
-            <pre className="mb-4 overflow-auto border border-primary/20 bg-background p-3 font-mono text-[11px]">
-{`~/agent/booth-stickers/booth-${location?.location_id ?? "<id>"}.pdf`}
-            </pre>
-            <ol className="mb-4 space-y-2 text-sm text-foreground/70">
-              <li>1. SCP it off the Dell, or open it locally on the Dell&apos;s desktop.</li>
-              <li>2. Print A5, laminate, stick on the booth at phone-height.</li>
-              <li>3. Test: phone camera → scan Wi-Fi QR → tap the join notification.</li>
-              <li>4. Scan the App QR → upload a photo → done.</li>
-            </ol>
-            <div className="border border-primary/30 bg-primary/5 p-4 font-mono text-xs">
-              <div className="mb-2 font-bold uppercase tracking-[0.2em] text-primary">
-                ✓ Booth live
-              </div>
-              <div>location: {location?.location_label}</div>
-              <div>ssid: {location?.ssid}</div>
-              <div>app url: http://10.42.0.1:8080/booth?loc={location?.location_id}</div>
-            </div>
-          </StepCard>
-        </div>
-      </section>
       <SiteFooter />
     </div>
   );
 }
 
-function Stepper({ current }: { current: Step }) {
-  const steps = ["Connect", "Discover", "Configure", "Test", "Sticker"];
+/* ─────────── shells ─────────── */
+
+function ActiveCard({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
-    <div className="flex gap-1 border border-primary/20 bg-background/60 p-2">
-      {steps.map((label, i) => {
-        const n = (i + 1) as Step;
-        const state = n < current ? "done" : n === current ? "active" : "todo";
-        return (
-          <div
-            key={label}
-            className={`flex-1 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] ${
-              state === "done"
-                ? "bg-primary/15 text-primary"
-                : state === "active"
-                ? "bg-primary text-primary-foreground"
-                : "text-foreground/40"
-            }`}
-          >
-            {n}. {label}
-          </div>
-        );
-      })}
-    </div>
+    <section className="relative overflow-hidden border border-primary/40 bg-muted/10 p-8">
+      <div className="absolute left-0 top-0 h-full w-1 bg-primary" />
+      <div className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-foreground/50">
+        Step {n}
+      </div>
+      <h2 className="mb-6 text-xl font-bold tracking-tight">{title}</h2>
+      {children}
+    </section>
   );
 }
 
-function StepCard({
-  n, active, done, title, children,
-}: {
-  n: number; active: boolean; done: boolean; title: string; children: React.ReactNode;
-}) {
+function StubCard({ n, title, done, onJump }: { n: number; title: string; done: boolean; onJump: () => void }) {
   return (
-    <div
-      className={`border p-6 transition-opacity ${
-        active ? "border-primary bg-background/80"
-        : done ? "border-primary/30 bg-background/40 opacity-70"
-        : "border-primary/10 bg-background/30 opacity-50"
+    <button
+      type="button"
+      onClick={onJump}
+      disabled={!done}
+      className={`flex w-full items-center justify-between border border-primary/10 bg-background/40 p-6 text-left transition-opacity ${
+        done ? "opacity-70 hover:opacity-100 hover:border-primary/30 cursor-pointer" : "opacity-40 cursor-default"
       }`}
     >
-      <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.3em] text-primary/60">
-        Step {n} {done && "· done"}
+      <div className="space-y-1">
+        <div className="font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-foreground/40">
+          Step {n} {done && "· done"}
+        </div>
+        <h3 className="text-sm font-bold text-foreground/70">{title}</h3>
       </div>
-      <h2 className="mb-4 text-xl font-bold tracking-tight">{title}</h2>
-      {(active || done) && children}
+      <div className={`flex size-5 items-center justify-center border ${done ? "border-primary/40" : "border-primary/15"}`}>
+        <div className={`size-1 ${done ? "bg-primary" : "bg-foreground/20"}`} />
+      </div>
+    </button>
+  );
+}
+
+/* ─────────── primitives ─────────── */
+
+function Pill({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/60 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-foreground/70">
+      <span className={`size-1.5 rounded-full ${ok ? "bg-primary animate-pulse" : "bg-destructive animate-pulse"}`} />
+      {label}
+    </span>
+  );
+}
+
+function NeonCTA({ children, onClick, disabled, fullWidth }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; fullWidth?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`${fullWidth ? "w-full md:w-auto" : ""} px-10 py-4 font-mono text-xs font-black uppercase tracking-tighter transition-colors ${
+        disabled
+          ? "bg-primary/20 text-primary-foreground/40 cursor-not-allowed"
+          : "bg-primary text-primary-foreground hover:bg-primary/80 cursor-pointer"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="block font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-foreground/60">
+      {children}
+    </label>
+  );
+}
+
+function MonoInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className="w-full border border-primary/15 bg-black/40 p-4 font-mono text-sm text-primary focus:border-primary focus:outline-none"
+    />
+  );
+}
+
+/* ─────────── step bodies ─────────── */
+
+function Step1({
+  agent, defaultAgent, onSave, health, location, error, onContinue,
+}: {
+  agent: string; defaultAgent: string; onSave: (u: string) => void;
+  health: Health | null; location: Location | null; error: string | null;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <FieldLabel>Agent URL</FieldLabel>
+        <MonoInput defaultValue={agent} onBlur={(e) => onSave(e.target.value)} placeholder={defaultAgent} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Pill ok={!!health} label={health ? "Agent online" : "Agent offline"} />
+        {location && (
+          <>
+            <Pill ok label={`id: ${location.location_id}`} />
+            <Pill ok label={`ssid: ${location.ssid || "—"}`} />
+            <Pill ok label={`printer: ${location.printer_name || "none"}`} />
+          </>
+        )}
+      </div>
+      {error && (
+        <p className="font-mono text-[11px] text-destructive/80">Cannot reach agent: {error}</p>
+      )}
+      <NeonCTA disabled={!health} onClick={onContinue} fullWidth>Continue</NeonCTA>
     </div>
   );
 }
 
-function Pill({ ok, label, neutral }: { ok: boolean; label: string; neutral?: boolean }) {
-  const color = neutral
-    ? "border-primary/20 text-foreground/70"
-    : ok
-    ? "border-primary/60 text-primary"
-    : "border-foreground/20 text-foreground/40";
+function Step2({
+  busy, discover, scanLog, chosen, setChosen, runDiscover, error, onContinue,
+}: {
+  busy: boolean; discover: DiscoverResp | null; scanLog: string;
+  chosen: { ip?: string; printer_name?: string } | null;
+  setChosen: (c: { ip?: string; printer_name?: string }) => void;
+  runDiscover: () => void; error: string | null; onContinue: () => void;
+}) {
   return (
-    <span className={`inline-flex items-center gap-2 border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] ${color}`}>
-      <span className={`size-1.5 rounded-full ${ok ? "bg-primary" : "bg-foreground/40"}`} />
-      {label}
-    </span>
+    <div className="space-y-5">
+      <p className="text-sm text-foreground/60">Scans mDNS (Bonjour) and port 9100 on the local subnet.</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <NeonCTA onClick={runDiscover} disabled={busy}>
+          {busy ? "Scanning…" : discover ? "Re-scan" : "Scan now"}
+        </NeonCTA>
+        {scanLog && <span className="font-mono text-[11px] text-foreground/50">{scanLog}</span>}
+      </div>
+
+      {discover && (
+        <div className="space-y-2">
+          {discover.installed.length > 0 && (
+            <div className="border border-primary/30 bg-primary/5 p-3">
+              <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+                Already installed in CUPS
+              </div>
+              {discover.installed.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setChosen({ printer_name: n })}
+                  className={`mr-2 mb-2 border px-3 py-2 font-mono text-xs transition-colors ${
+                    chosen?.printer_name === n
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-primary/20 hover:border-primary/50"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          )}
+          {discover.candidates.length === 0 ? (
+            <p className="font-mono text-[11px] text-foreground/50">
+              No network printers discovered. Plug via USB and use hp-setup on the Dell,
+              or pick a CUPS-installed printer above.
+            </p>
+          ) : (
+            discover.candidates.map((c) => (
+              <button
+                key={c.ip}
+                type="button"
+                onClick={() => setChosen({ ip: c.ip })}
+                className={`flex w-full items-center justify-between border p-3 text-left transition-colors ${
+                  chosen?.ip === c.ip
+                    ? "border-primary bg-primary/10"
+                    : "border-primary/20 hover:border-primary/50"
+                }`}
+              >
+                <span>
+                  <span className="font-mono text-sm">{c.ip}</span>
+                  <span className="ml-3 text-xs text-foreground/60">{c.name}</span>
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
+                  {c.source}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+
+      {error && <p className="font-mono text-[11px] text-destructive/80">{error}</p>}
+      <NeonCTA disabled={!chosen} onClick={onContinue} fullWidth>Continue</NeonCTA>
+    </div>
+  );
+}
+
+function Step3({
+  chosen, busy, error, onConfigure,
+}: {
+  chosen: { ip?: string; printer_name?: string } | null;
+  busy: boolean; error: string | null; onConfigure: () => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-foreground/60">
+        {chosen?.ip
+          ? `Will run hp-setup -i -a -x ${chosen.ip} on the Dell, then save the printer name to config.`
+          : chosen?.printer_name
+          ? `Will adopt existing CUPS printer "${chosen.printer_name}" as this booth's printer.`
+          : "Nothing chosen."}
+      </p>
+      {error && <p className="font-mono text-[11px] text-destructive/80">{error}</p>}
+      <NeonCTA disabled={!chosen || busy} onClick={onConfigure} fullWidth>
+        {busy ? "Configuring…" : "Configure printer"}
+      </NeonCTA>
+    </div>
+  );
+}
+
+function Step4({
+  busy, testJob, testStatus, error, onTest, onContinue,
+}: {
+  busy: boolean; testJob: string | null; testStatus: JobResp | null;
+  error: string | null; onTest: () => void; onContinue: () => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-foreground/60">Sends the bundled test chart. Watch the tray.</p>
+      <NeonCTA disabled={busy} onClick={onTest}>
+        {testJob ? "Re-send test" : "Send test print"}
+      </NeonCTA>
+      {testStatus && (
+        <div className="border border-primary/20 bg-background/60 p-4 font-mono text-xs">
+          <div>job: {testJob}</div>
+          <div>status: {testStatus.status}</div>
+          {testStatus.position > 0 && <div>position: {testStatus.position}</div>}
+          {testStatus.error && <div className="text-destructive">error: {testStatus.error}</div>}
+        </div>
+      )}
+      {error && <p className="font-mono text-[11px] text-destructive/80">{error}</p>}
+      <NeonCTA disabled={testStatus?.status !== "done"} onClick={onContinue} fullWidth>
+        It printed → finish
+      </NeonCTA>
+    </div>
+  );
+}
+
+function Step5({ location }: { location: Location | null }) {
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-foreground/60">
+        The provisioning script generated a sticker PDF on the Dell:
+      </p>
+      <pre className="overflow-auto border border-primary/20 bg-black/40 p-3 font-mono text-[11px] text-primary">
+{`~/agent/booth-stickers/booth-${location?.location_id ?? "<id>"}.pdf`}
+      </pre>
+      <ol className="space-y-2 text-sm text-foreground/70">
+        <li>1. SCP it off the Dell, or open it on the Dell&apos;s desktop.</li>
+        <li>2. Print A5, laminate, stick on the booth at phone-height.</li>
+        <li>3. Test: phone camera → scan Wi-Fi QR → tap join.</li>
+        <li>4. Scan the App QR → upload a photo → done.</li>
+      </ol>
+      <div className="border border-primary/30 bg-primary/5 p-4 font-mono text-xs">
+        <div className="mb-2 font-bold uppercase tracking-[0.2em] text-primary">✓ Booth live</div>
+        <div>location: {location?.location_label}</div>
+        <div>ssid: {location?.ssid}</div>
+        <div>app url: http://10.42.0.1:8080/booth?loc={location?.location_id}</div>
+      </div>
+    </div>
   );
 }
