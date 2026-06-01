@@ -1,114 +1,106 @@
-# Plan: Dell Wyse — preserve old setup, add new print agent, toggle between them
+# Printer Booth — Phase 1: One Booth, Built for Many
 
-You'll end up with:
-- A **full snapshot** of the Dell as it is today, so you can roll back anytime.
-- **Remote desktop** from your Windows PC (clipboard copy-paste works).
-- The **HP M451** printer wired up to CUPS.
-- The **print agent** installed but NOT auto-starting — controlled by a simple toggle.
-- Two commands: `mode-old` and `mode-new` to switch between the original auto-starting app and the new print-agent setup.
+## The model (so future-you isn't stuck)
 
-Nothing destructive. The old software stays installed and intact the entire time.
+Each "booth" = **1 Dell Wyse + 1 laser printer** running as a self-contained **offline Wi-Fi vending machine**. No internet at the booth. No cloud. The user's phone joins the booth's Wi-Fi, opens dpotopoto (PWA cached on their phone), prints, walks away.
 
----
-
-## Step 1 — Find out what "old" actually is
-
-Before we touch anything, we inventory what auto-starts today so the toggle knows what to turn on/off.
-
-Commands you'll run over SSH (I'll guide live):
-- `systemctl list-unit-files --state=enabled` — system services that boot
-- `ls ~/.config/autostart/ 2>/dev/null` — desktop apps that auto-launch
-- `cat /etc/xdg/autostart/*.desktop | grep -E 'Name|Exec'` — system-wide desktop autostart
-- `crontab -l` and `sudo crontab -l` — scheduled jobs
-
-Output tells us exactly which unit(s) to flip in the toggle.
-
-## Step 2 — Take a full system snapshot (Timeshift)
-
-Insurance policy. One-time setup, then a snapshot named `pre-printer-agent`.
-
-```
-sudo apt install -y timeshift
-sudo timeshift --create --comments "pre-printer-agent" --tags D
-sudo timeshift --list
+```text
+   ┌─────────── BOOTH (e.g. "Mall-A-L2") ────────────┐
+   │                                                 │
+   │   Dell Wyse  ──USB──►  HP M451 (or any laser)   │
+   │     │                                           │
+   │     ├─ Wi-Fi AP   SSID: dpotopoto-mall-a-l2     │
+   │     │             PSK : printed on QR sticker   │
+   │     ├─ Agent      http://10.42.0.1:8765         │
+   │     └─ Location ID: "mall-a-l2"                 │
+   │                                                 │
+   │   📱 QR sticker on the booth:                   │
+   │      → joins Wi-Fi + opens app + locks location │
+   └─────────────────────────────────────────────────┘
 ```
 
-If anything later goes wrong: `sudo timeshift --restore` rolls the whole OS back to today. Old software returns exactly as it was.
+Every booth looks identical except for **location_id**, **SSID**, **PSK**. That's the only thing the admin changes per unit. The app code, the agent code, the install script — same everywhere.
 
-## Step 3 — Install xrdp (remote desktop from your PC)
+## Why this shape
 
+- **No internet at booth** = no SIM, no router, no monthly fee, no "the Wi-Fi went down" support call.
+- **Dell-as-AP** = printer doesn't need its own Wi-Fi; works with any USB laser regardless of brand. M451, Canon, Brother — same flow.
+- **QR does everything** = one scan joins the Wi-Fi *and* opens the right app screen. User never types an SSID, never picks a location from a list, never picks the wrong printer.
+- **Location ID baked in at provisioning** = no admin screen, no pairing flow, no auth. The sticker IS the registration.
+
+## Phase 1 scope (this build)
+
+Build the **single-booth setup screen + provisioning script**. One Dell, one printer, end-to-end working. Multi-booth requires literally zero new code — only running the provisioning script again with a different location_id.
+
+### What gets built
+
+**1. Dell side — `agent/deploy/provision.sh`** (run once per booth, by admin, over SSH)
+- Prompts admin for: `LOCATION_ID` (e.g. `mall-a-l2`), `WIFI_PSK` (8-char random, suggested)
+- Configures Dell as Wi-Fi AP via NetworkManager: SSID `dpotopoto-<location_id>`, gateway `10.42.0.1`, DHCP for clients
+- Runs `hp-setup -i` discovery (existing plan) to auto-find and install the USB/LAN printer
+- Writes `agent/config.json` with `{ location_id, printer_name, ssid, psk }`
+- Generates a printable **QR sticker PDF** (`booth-<location_id>.pdf`) containing:
+  - Wi-Fi join QR (`WIFI:T:WPA;S:...;P:...;;` — phones auto-join on scan)
+  - App-open QR (`http://10.42.0.1:8765/print?loc=<location_id>`)
+  - Combined as one QR if possible, else two side-by-side
+- Enables `dpoto-agent.service` (already in earlier plan)
+
+**2. Agent — adds to existing `agent/main.py`**
+- `GET /print?loc=<id>` — serves the cached PWA shell, injects `location_id` so the UI locks to this booth
+- `GET /api/location` — returns `{ location_id, printer_name }` for the UI header
+- `POST /api/print` — accepts file/image, enqueues via CUPS, returns job id
+- `GET /api/jobs/:id` — poll status
+- Reuses discovery endpoints from earlier plan for the **admin-only** setup screen below
+
+**3. App — `src/routes/printer.setup.tsx`** (admin-facing, runs from admin's laptop on the booth's Wi-Fi during provisioning)
+- Step 1: "Connected to booth?" → pings `http://10.42.0.1:8765/health`
+- Step 2: "Discover printer" → calls agent `/discover`, lets admin pick if multiple
+- Step 3: "Configure" → POSTs choice to agent `/printer/configure`
+- Step 4: "Test print" → sends test page, polls job
+- Step 5: "Done — print the sticker" → shows the PDF the provision script generated, instructions to laminate + stick on booth
+- Single linear wizard, no auth (LAN-only, no internet exposure)
+
+**4. App — `src/routes/print.tsx`** (end-user flow, opened by QR)
+- Reads `?loc=` from URL, shows "Printing at: Mall A, Level 2"
+- Upload-or-camera → preview → Print → progress → "Take your print from the tray ↓"
+- Pure client-side; talks only to `http://10.42.0.1:8765` (same origin as the QR URL, so no CORS, no mixed-content)
+
+### Out of scope (deferred, but doesn't block scaling)
+
+- Payment / credits (drop in later as a step before `POST /api/print`)
+- Multi-printer-per-booth (architecture supports it; UI assumes one)
+- Remote monitoring of booths (would need internet — separate decision later)
+- Admin dashboard listing all booths — not needed; each booth is independent
+
+## File changes (technical)
+
+Agent (`agent/`):
+- `deploy/provision.sh` — NEW; orchestrates AP setup + printer install + QR PDF generation (uses `qrencode` + `wkhtmltopdf` or `weasyprint`)
+- `deploy/install.sh` — add `network-manager`, `dnsmasq`, `qrencode`, `weasyprint`, `avahi-utils`, `nmap`, `hplip`
+- `main.py` — add `/print`, `/api/location`, `/api/print`, `/api/jobs/:id`, `/discover`, `/printer/configure`, `/printer/test`
+- `config.json` — schema: `{ location_id, location_label, printer_name, ssid }`
+- `discovery.py` — NEW; mDNS + nmap helpers
+- `README.md` — "How to provision a new booth in 5 minutes"
+
+App (`src/`):
+- `routes/printer.setup.tsx` — NEW; admin wizard
+- `routes/print.tsx` — NEW; end-user print flow
+- `routes/printer.tsx` — add Setup link
+- No backend/Lovable Cloud needed for Phase 1 (everything runs on the Dell)
+
+## Provisioning a new booth (the admin flow this enables)
+
+```text
+1. Plug Dell + printer at the new location, power on
+2. SSH into Dell (over a temp Ethernet/USB-tether, one time)
+3. Run:  sudo ./provision.sh mall-b-l1
+4. Script prints: "Done. Open booth-mall-b-l1.pdf and laminate the sticker."
+5. Stick the QR on the booth
+6. Walk away. Booth is live.
 ```
-sudo apt install -y xrdp
-sudo systemctl enable --now xrdp
-sudo ufw allow 3389/tcp   # only if a firewall is active
-```
 
-Then on Windows: **Start → "Remote Desktop Connection" → 192.168.18.41 → log in as `elenajaya`**. Clipboard copy-paste works both directions out of the box.
+Repeat for booth #2, #50, #500 — same script, different ID. No code change, no app deploy, no admin screen in the cloud, no central database.
 
-WinSCP stays for bulk file transfer. xrdp is for actually using the Dell.
+## Open question worth confirming before I build
 
-## Step 4 — Set up the HP M451n printer
-
-```
-sudo apt install -y cups hplip
-sudo systemctl enable --now cups
-sudo usermod -aG lpadmin elenajaya
-sudo hp-setup -i <PRINTER_IP>   # you'll supply the IP
-lpstat -p -d                    # confirm it shows up
-echo "hello dpotopoto" | lp     # test print
-```
-
-If the printer name CUPS assigns isn't `HP_M451`, we'll edit `agent/config.json` to match.
-
-## Step 5 — Deploy the print agent (installed, NOT auto-starting yet)
-
-Copy the `agent/` folder from this repo to `~/agent` on the Dell via WinSCP. Then:
-
-```
-sudo apt install -y imagemagick python3-pip python3-venv
-cd ~/agent
-python3 -m venv .venv
-.venv/bin/pip install fastapi uvicorn python-multipart pillow
-```
-
-Create a systemd unit `/etc/systemd/system/dpoto-agent.service` that runs uvicorn on port 8080 — but **do not enable it yet**. The toggle controls that.
-
-## Step 6 — The toggle (this is the main feature you asked for)
-
-Two scripts in `/usr/local/bin/`:
-
-**`mode-old`** — restore original boot behavior:
-- `sudo systemctl disable --now dpoto-agent`
-- re-enable whatever auto-starting service/app we found in Step 1
-- prints "✅ OLD MODE active — reboot to confirm"
-
-**`mode-new`** — print-agent mode:
-- `sudo systemctl disable --now <old-app>` (stops the original app from grabbing the screen/resources)
-- `sudo systemctl enable --now dpoto-agent`
-- prints "✅ NEW MODE active — agent at http://192.168.18.41:8080"
-
-`mode-status` — shows which mode is currently active.
-
-After step 6, switching is literally: SSH in, type `mode-old` or `mode-new`, reboot if needed. No reinstalls, no data loss, both setups coexist permanently.
-
-## Step 7 — Verify
-
-- Run `mode-new` → from your phone visit `http://192.168.18.41:8080/console` → submit the bundled test chart → paper comes out.
-- Run `mode-old` → reboot → confirm the original app starts as before.
-- Run `mode-new` again → back to print-agent mode.
-
----
-
-## Technical notes (for reference)
-
-- Timeshift uses rsync snapshots; doesn't need a separate partition on ext4.
-- xrdp on Ubuntu 22.04+ works with the default GNOME session; if you hit a black screen we'll switch the session to Xorg in `/etc/xrdp/startwm.sh`.
-- The agent service runs as user `elenajaya` so CUPS permissions and `~/agent` paths just work.
-- If the "old" auto-starting app is a graphical kiosk (e.g. Chromium in kiosk mode), it lives in `~/.config/autostart/` and the toggle just renames the `.desktop` file with a `.disabled` suffix instead of touching systemd.
-- All changes are reversible: uninstalling is `apt remove xrdp dpoto-agent`, deleting `~/agent`, and `timeshift --restore` if you want to nuke everything.
-
-## What I need from you to proceed
-
-1. Approve this plan (click Implement).
-2. Be at the SSH prompt — Step 1's inventory commands need to run on the Dell so the toggle is wired to the right service.
-3. Have the HP M451's IP address ready for Step 4.
+Confirm: **one printer per booth always** (Phase 1 assumes this). If a single booth ever needs 2 printers (e.g. color + B&W), the QR/URL flow would need a printer picker on the user screen — small change, but better to know now.
