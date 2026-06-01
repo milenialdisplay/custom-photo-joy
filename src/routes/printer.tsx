@@ -166,9 +166,15 @@ function MainPanel() {
   const [activeJobInfo, setActiveJobInfo] = useState<JobResponse | null>(null);
   const [tagPrint, setTagPrint] = useState(true);
 
-  // hydrate
+  // hydrate — auto-create an anonymous booth identity if none exists yet.
+  // Guests wait at the booth and pay there, so no signup step is needed.
   useEffect(() => {
-    setIdentity(loadIdentity());
+    let id = loadIdentity();
+    if (!id) {
+      id = { guest_id: uuid(), guest_name: "Booth Guest", guest_color: DEFAULT_GUEST_COLOR };
+      saveIdentity(id);
+    }
+    setIdentity(id);
     setAgentUrl(loadAgentUrl());
   }, []);
 
