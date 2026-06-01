@@ -4,7 +4,7 @@ import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
 
-export const Route = createFileRoute("/printer/setup")({
+export const Route = createFileRoute("/printer-setup")({
   head: () => ({
     meta: [
       { title: "Booth Setup Wizard — dpotopoto" },
