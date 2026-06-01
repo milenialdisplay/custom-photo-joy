@@ -584,6 +584,8 @@ function SendPrintForm({
         </div>
       )}
 
+      <PrintPreview file={file} paperSize={paperSize} />
+
       <div className="mb-5 grid grid-cols-2 gap-4">
         <Field label="Paper size">
           <select
