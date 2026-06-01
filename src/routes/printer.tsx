@@ -584,29 +584,20 @@ function SendPrintForm({
         </div>
       )}
 
-      <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="mb-5 grid grid-cols-2 gap-4">
         <Field label="Paper size">
           <select
             className="w-full border border-primary/20 bg-background px-3 py-2 font-mono text-xs"
             value={paperSize}
-            onChange={(e) => setPaperSize(e.target.value as (typeof PAPER_SIZES)[number])}
+            onChange={(e) => {
+              const v = e.target.value as (typeof PAPER_SIZES)[number];
+              setPaperSize(v);
+              checkResolution(file, v);
+            }}
           >
             {PAPER_SIZES.map((p) => (
               <option key={p} value={p}>
                 {p}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Preset">
-          <select
-            className="w-full border border-primary/20 bg-background px-3 py-2 font-mono text-xs"
-            value={paperPreset}
-            onChange={(e) => setPaperPreset(e.target.value)}
-          >
-            {PAPER_PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
               </option>
             ))}
           </select>
@@ -622,6 +613,7 @@ function SendPrintForm({
           />
         </Field>
       </div>
+
 
       <label className="mb-5 flex items-center gap-3 text-sm">
         <input
