@@ -14,8 +14,9 @@ from typing import Optional
 from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
+from pydantic import BaseModel
 
-from . import policy, printer
+from . import discovery, policy, printer
 from .queue import JobQueue
 
 ROOT = Path(__file__).parent
