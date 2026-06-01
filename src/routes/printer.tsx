@@ -72,12 +72,14 @@ const COLOR_TAGS: { id: string; hex: string; label: string }[] = [
   { id: "lime", hex: "#73ffb8", label: "Lime" },
 ];
 
-const PAPER_SIZES = ["2R", "4R", "A5", "A6", "Square"] as const;
-const PAPER_PRESETS = [
-  { id: "glossy_200", label: "Glossy 200 gsm" },
-  { id: "matte_120", label: "Matte 120 gsm" },
-  { id: "default", label: "Default" },
-];
+// Only A4 and A5 are supported. Printer margins are fixed by the agent.
+const PAPER_SIZES = ["A4", "A5"] as const;
+// Minimum pixel dimensions for "standard" print quality (≈200 dpi).
+// Below these, we warn the user that the print may look blurry.
+const MIN_RES: Record<(typeof PAPER_SIZES)[number], { short: number; long: number; label: string }> = {
+  A4: { short: 1654, long: 2339, label: "A4 (≥1654 × 2339 px)" },
+  A5: { short: 1165, long: 1654, label: "A5 (≥1165 × 1654 px)" },
+};
 
 const LS_IDENTITY = "dpoto.printer.identity";
 const LS_AGENT_URL = "dpoto.printer.agent_url";
