@@ -909,33 +909,120 @@ function PublicQueue({ queue, myJobId }: { queue: QueueItem[]; myJobId: string |
     () => queue.filter((q) => q.status === "queued" || q.status === "printing").slice(0, 12),
     [queue],
   );
+  const printing = visible.find((q) => q.status === "printing") ?? null;
+  const myIndex = myJobId ? visible.findIndex((q) => q.job_id === myJobId) : -1;
+  const myJob = myIndex >= 0 ? visible[myIndex] : null;
+  const ahead = myIndex > 0 ? myIndex : 0;
+  const etaSeconds = ahead * 15; // matches avg_print_seconds_default
+
   return (
     <div className="border border-primary/20 bg-background/60 p-6">
-      <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-        // Queue ({visible.length})
+      <div className="mb-4 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[0.3em]">
+        <span className="text-primary">// Queue</span>
+        <span className="text-foreground/40">{visible.length} active</span>
       </div>
+
+      {/* YOUR POSITION — primary indicator */}
+      {myJob ? (
+        <div
+          className={`mb-4 border-2 p-4 ${
+            myJob.status === "printing"
+              ? "border-primary bg-primary/15"
+              : "border-primary/60 bg-primary/5"
+          }`}
+        >
+          <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">
+            // You
+          </div>
+          {myJob.status === "printing" ? (
+            <>
+              <div className="text-3xl font-bold tracking-tighter text-primary animate-pulse">
+                Printing now
+              </div>
+              <div className="mt-1 font-mono text-[11px] text-foreground/70">
+                Head to the tray — look for your color tag.
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/60">
+                  Position
+                </span>
+                <span className="text-4xl font-bold tracking-tighter">#{myIndex + 1}</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/60">
+                  of {visible.length}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 font-mono text-[11px] text-foreground/70">
+                <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                {ahead === 0
+                  ? "You're up next."
+                  : `~${etaSeconds}s — ${ahead} ${ahead === 1 ? "print" : "prints"} ahead of you.`}
+              </div>
+            </>
+          )}
+        </div>
+      ) : printing ? (
+        <div className="mb-4 border border-primary/30 bg-background/40 px-4 py-3">
+          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/50">
+            Now printing
+          </div>
+          <div className="mt-1 flex items-center gap-2">
+            <span
+              className="size-3 border border-foreground/30"
+              style={{ backgroundColor: printing.guest_color }}
+              aria-hidden
+            />
+            <span className="truncate text-sm">{printing.guest_name}</span>
+          </div>
+        </div>
+      ) : null}
+
       {visible.length === 0 ? (
-        <p className="font-mono text-xs text-foreground/40">No jobs waiting.</p>
+        <p className="font-mono text-xs text-foreground/40">No jobs waiting — send the first print.</p>
       ) : (
         <ol className="space-y-2">
           {visible.map((q, i) => {
             const mine = q.job_id === myJobId;
+            const isPrinting = q.status === "printing";
             return (
               <li
                 key={q.job_id}
                 className={`flex items-center gap-3 border px-3 py-2 ${
-                  mine ? "border-primary bg-primary/10" : "border-primary/10"
+                  mine
+                    ? "border-primary bg-primary/10"
+                    : isPrinting
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-primary/10"
                 }`}
               >
-                <span className="w-6 font-mono text-[10px] text-foreground/40">#{i + 1}</span>
+                <span
+                  className={`w-6 font-mono text-[10px] ${
+                    mine ? "font-bold text-primary" : "text-foreground/40"
+                  }`}
+                >
+                  #{i + 1}
+                </span>
                 <span
                   className="size-4 border border-foreground/30"
                   style={{ backgroundColor: q.guest_color }}
                   aria-hidden
                 />
-                <span className="flex-1 truncate text-sm">{q.guest_name}</span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/50">
-                  {q.status === "printing" ? "printing" : q.paper_size}
+                <span className="flex-1 truncate text-sm">
+                  {q.guest_name}
+                  {mine && (
+                    <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.25em] text-primary">
+                      you
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={`font-mono text-[10px] uppercase tracking-[0.2em] ${
+                    isPrinting ? "text-primary animate-pulse" : "text-foreground/50"
+                  }`}
+                >
+                  {isPrinting ? "● printing" : q.paper_size}
                 </span>
               </li>
             );
@@ -945,6 +1032,7 @@ function PublicQueue({ queue, myJobId }: { queue: QueueItem[]; myJobId: string |
     </div>
   );
 }
+
 
 function OperatorLink({ agentUrl }: { agentUrl: string }) {
   return (
