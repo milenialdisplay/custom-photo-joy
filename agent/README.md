@@ -58,17 +58,24 @@ In the web app at `/printer`, set the agent base URL to `http://<dell-ip>:8080`.
 
 ```
 POST /print  (multipart/form-data)
-  file, paper_size, paper_preset, copies (1-3),
+  file, paper_size (A4|A5|...), paper_preset, copies (1-10),
   guest_id, guest_name, guest_color
   → 200 { job_id, position, eta_seconds }
+  → 400 { error: "copies_out_of_range", max: 10 }
   → 429 { error: "cooldown"|"quota_exceeded"|"queue_full", retry_after }
   → 503 { error: "printer_offline" }
 
-GET /jobs/{id}  → { status, position, eta_seconds, guest_color, error? }
-GET /queue      → [{ job_id, guest_name, guest_color, status, paper_size, submitted_at }]
-GET /health     → { agent, printer, queue_depth }
-GET /console    → operator HTML UI
+GET /jobs/{id}   → { status, position, eta_seconds, guest_color, error? }
+GET /queue       → [{ job_id, guest_name, guest_color, status, paper_size, submitted_at }]
+GET /health      → { agent, printer, queue_depth }
+GET /api/config  → { location_label, printer_name, prices_idr:{A4,A5},
+                     max_copies_per_job, max_files_per_order }
+GET /console     → operator HTML UI
 ```
+
+The `copies` cap and `prices_idr` are operator-adjustable in `config.json` —
+edit, save, and the next page load on `/print` picks up the new values.
+No web redeploy needed.
 
 ## Tuning color
 

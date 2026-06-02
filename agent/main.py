@@ -76,9 +76,13 @@ async def submit_print(
     guest_color: str = Form(...),
 ):
     # Validate
-    if copies < 1 or copies > 3:
-        raise HTTPException(400, "copies must be 1..3")
-    if paper_size not in {"2R", "4R", "A5", "A6", "Square"}:
+    max_copies = int(CONFIG.get("max_copies_per_job", 10))
+    if copies < 1 or copies > max_copies:
+        return JSONResponse(
+            {"error": "copies_out_of_range", "max": max_copies},
+            status_code=400,
+        )
+    if paper_size not in {"2R", "4R", "A5", "A6", "Square", "A4"}:
         raise HTTPException(400, "invalid paper_size")
 
     # Printer availability
@@ -211,6 +215,27 @@ def api_location():
         "printer_name": CONFIG.get("printer_name", ""),
         "default_paper_size": CONFIG.get("default_paper_size", "A6"),
         "agent_version": CONFIG.get("agent_version", "0.0.0"),
+    }
+
+
+@app.get("/api/config")
+def api_config():
+    """Adjustable per-booth config consumed by the /print web page.
+
+    Operators edit prices_idr + limits in config.json on the Dell —
+    no web redeploy needed. Defaults are sensible if a field is missing.
+    """
+    prices = CONFIG.get("prices_idr") or {}
+    return {
+        "location_id": CONFIG.get("location_id", "unset"),
+        "location_label": CONFIG.get("location_label", "Unset Booth"),
+        "printer_name": CONFIG.get("printer_name", ""),
+        "prices_idr": {
+            "A4": int(prices.get("A4", 15000)),
+            "A5": int(prices.get("A5", 5000)),
+        },
+        "max_copies_per_job": int(CONFIG.get("max_copies_per_job", 10)),
+        "max_files_per_order": int(CONFIG.get("max_files_per_order", 10)),
     }
 
 
