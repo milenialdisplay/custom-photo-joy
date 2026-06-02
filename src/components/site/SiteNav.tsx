@@ -12,13 +12,10 @@ export function SiteNav() {
           <BrandLogo variant="dark" className="text-2xl md:text-3xl" />
         </Link>
         <div className="hidden gap-8 font-mono text-[11px] uppercase tracking-[0.2em] text-primary/60 md:flex">
-          <Link to="/studio" className="transition-colors hover:text-primary">Studio</Link>
-          <Link to="/kiosk" className="transition-colors hover:text-primary">Kiosk_Mode</Link>
-          <Link to="/pricing" className="transition-colors hover:text-primary">Pricing</Link>
-          <span className="flex items-center gap-2 text-primary/40">
-            <span className="size-1.5 animate-blink rounded-full bg-primary" />
-            System: Live
-          </span>
+          <Link to="/snap" className="transition-colors hover:text-primary" activeProps={{ className: "text-primary" }}>/snap</Link>
+          <Link to="/frame" className="transition-colors hover:text-primary" activeProps={{ className: "text-primary" }}>/frame</Link>
+          <Link to="/printer" className="transition-colors hover:text-primary" activeProps={{ className: "text-primary" }}>/printer</Link>
+          <Link to="/kiosk" className="transition-colors hover:text-primary" activeProps={{ className: "text-primary" }}>/kiosk</Link>
         </div>
         <div className="flex items-center gap-1 rounded-sm border border-primary/20 p-0.5 font-mono text-[10px]">
           {(["EN", "ID"] as const).map((l) => (
