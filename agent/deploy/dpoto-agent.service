@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=elenajaya
 Group=elenajaya
-WorkingDirectory=/home/elenajaya/agent
+WorkingDirectory=/home/elenajaya
 Environment=PYTHONUNBUFFERED=1
 ExecStart=/home/elenajaya/agent/.venv/bin/python -m uvicorn agent.main:app --host 0.0.0.0 --port 8080
 Restart=on-failure

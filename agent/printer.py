@@ -8,6 +8,8 @@ from typing import Literal
 
 
 def status(printer_name: str) -> Literal["ready", "error", "offline"]:
+    if not printer_name:
+        return "offline"
     if shutil.which("lpstat") is None:
         return "offline"
     try:
