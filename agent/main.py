@@ -455,3 +455,14 @@ send.addEventListener('click', async () => {
 </body></html>
 """
 
+
+# ════════════════════════ static React app (optional) ════════════════════════
+# If a built React app exists at agent/web/ (copy of `dist/` from the lovable
+# project), serve it at /app so phones on the booth Wi-Fi can use the full
+# /printer UI without any internet. Same-origin HTTP, no mixed-content block.
+# To enable: run `bun run build` in the lovable repo, then copy dist/* into
+# agent/web/ on the Dell. The mount is skipped if the folder is empty.
+WEB_DIR = ROOT / "web"
+if WEB_DIR.exists() and any(WEB_DIR.iterdir()):
+    app.mount("/app", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
+
