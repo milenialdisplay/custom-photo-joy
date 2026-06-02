@@ -139,7 +139,7 @@ class JobQueue:
     def list_recent(self, limit: int = 50) -> list[dict[str, Any]]:
         with self._conn() as c:
             rows = c.execute(
-                """SELECT job_id, guest_name, guest_color, status, paper_size, submitted_at
+                """SELECT job_id, guest_name, guest_color, status, paper_size, submitted_at, copies
                    FROM jobs ORDER BY submitted_at DESC LIMIT ?""",
                 (limit,),
             ).fetchall()
