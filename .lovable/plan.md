@@ -1,41 +1,44 @@
+## What the error tells us
+
+The Dell's `~/agent/printer.py` has `from __future__ import annotations` at **line 63**. That import is only legal at the very top of a file. This means the file got **appended to**, not replaced — there's an older copy of `printer.py` sitting above the new one (probably ~62 lines of old content, then the new file pasted underneath).
+
+The repo's `printer.py` is clean and only ~62 lines total, so the fix is to overwrite the Dell's file completely, not edit it.
+
 ## Plan
 
-1. Replace the Dell’s `~/agent/pipeline.py` with the current fit-to-paper version.
-   - Your `head -1` output proves that file is still the older one (`"""Color pipeline: sRGB → printer ICC → tone curve → 300 DPI → TIFF.`), not the new auto-fit version.
-   - Because `agent.main` imports `queue`, and `queue` imports `pipeline`, any syntax/runtime issue there kills the service before port `8080` opens.
+1. **Overwrite `~/agent/printer.py` on the Dell** with a single clean copy (the version in the repo, which already includes the `"A4": "A4"` mapping). Use `cat > ~/agent/printer.py << 'PYEOF' … PYEOF` so the whole file is replaced atomically — no risk of appending again.
 
-2. Validate the three critical files on the Dell before restarting.
-   - Confirm `config.json` parses.
-   - Confirm Python can import `agent.pipeline`, `agent.printer`, and `agent.main` cleanly.
-   - This catches paste mistakes immediately instead of debugging through `systemctl`.
+2. **Verify the file is exactly one copy**, not two stacked:
+   ```bash
+   wc -l ~/agent/printer.py          # expect ~62
+   grep -c "from __future__" ~/agent/printer.py   # expect 1
+   ```
 
-3. Restart the service and verify health.
-   - Restart `dpoto-agent`.
-   - Check `curl http://localhost:8080/health`.
-   - If it still fails, read the latest `journalctl` traceback and fix the exact line reported.
+3. **Re-run the import smoke test from `~`** (parent of the `agent/` package):
+   ```bash
+   cd ~ && python3 -c "from agent import pipeline, printer, main; print('imports OK')"
+   ```
 
-4. Complete the A4 print path after startup is back.
-   - Add the missing A4 CUPS media mapping in `printer.py` so A4 jobs don’t silently fall back to another size.
-   - Keep `fit-to-page` removed so the already-sized output is not rescaled again.
+4. **Restart and verify health**:
+   ```bash
+   sudo systemctl restart dpoto-agent
+   sleep 2
+   curl http://localhost:8080/health
+   ```
 
-5. Confirm the intended sizing behavior with a real print.
-   - Small image: upscale to A4 at 240 DPI, full page, slightly soft.
-   - Large image: resize to A4 at 300 DPI, full page, sharper.
+5. **If health still fails**, read the fresh traceback:
+   ```bash
+   sudo journalctl -u dpoto-agent -n 40 --no-pager
+   ```
+   and apply the same "fully overwrite, don't append" fix to whichever file is named in the new traceback (most likely `pipeline.py` has the same problem).
 
-## Technical details
+## Why this keeps happening
 
-- Current startup dependency chain:
-```text
-systemd -> uvicorn -> agent.main -> agent.queue -> agent.pipeline
-```
-- The smoking gun is the mismatched first line:
-  - `printer.py` is already the corrected file.
-  - `pipeline.py` on the Dell is still the old/stale file.
-- `config.json` already looks structurally fine from your output.
-- There is also one functional gap to finish after recovery: `printer.py` currently maps `2R`, `4R`, `A5`, `A6`, `Square`, but not `A4`.
+When `nano` opens an existing file and you paste a heredoc-style block, the paste is **inserted** at the cursor — it doesn't replace the file. So every "fix" so far has stacked a new copy on top of the old one. The `cat > file << 'PYEOF'` approach replaces the whole file in one shot and avoids nano entirely, which is why I'll use that in step 1.
 
 ## Expected result
 
-- `dpoto-agent` starts normally.
-- `curl http://localhost:8080/health` responds again.
-- A4 prints fill the page automatically: smaller sources upscale, larger sources downscale.
+- `printer.py` is exactly one clean copy (~62 lines, one `from __future__` line at the top).
+- Import smoke test prints `imports OK`.
+- `dpoto-agent` starts.
+- `curl http://localhost:8080/health` returns the JSON status.
