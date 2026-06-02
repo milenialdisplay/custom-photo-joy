@@ -43,7 +43,7 @@ Then provision the booth identity (SSID, sticker, location label):
 sudo bash deploy/provision.sh <location-id> --label "Mall A · Level 2"
 ```
 
-| `mode-status` | Show which mode is active and printer status. |
+
 
 ## Wiring the toggle to your "old" app
 
