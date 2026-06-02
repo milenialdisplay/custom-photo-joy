@@ -129,7 +129,7 @@ function StudioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Consume a pending capture handed off from /camera-test → load into slot 0
+  // Consume a pending capture handed off from /snap → load into slot 0
   useEffect(() => {
     const pending = consumePendingCapture();
     if (!pending) return;
