@@ -50,7 +50,9 @@ def health():
         "agent": f"dpoto-agent {CONFIG['agent_version']}",
         "printer": printer.status(CONFIG["printer_name"]),
         "queue_depth": queue.depth(),
+        "setup_complete": bool(CONFIG.get("setup_complete", False)),
     }
+
 
 
 @app.get("/queue")
