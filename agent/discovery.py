@@ -115,3 +115,54 @@ def lpstat_printers() -> list[str]:
         if m:
             names.append(m.group(1))
     return names
+
+
+def usb_devices() -> list[dict]:
+    """List USB printers visible to CUPS via `lpinfo -v`.
+
+    Returns rows like { uri, make_model }. Used by the USB setup wizard.
+    """
+    if shutil.which("lpinfo") is None:
+        return []
+    try:
+        r = subprocess.run(
+            ["lpinfo", "-l", "-v"], capture_output=True, text=True, timeout=6,
+        )
+    except Exception:
+        return []
+    out: list[dict] = []
+    cur: dict = {}
+    for raw in r.stdout.splitlines():
+        line = raw.strip()
+        if line.startswith("Device:"):
+            if cur.get("uri", "").startswith("usb://"):
+                out.append(cur)
+            cur = {}
+        elif line.startswith("uri = "):
+            cur["uri"] = line[len("uri = "):].strip()
+        elif line.startswith("make-and-model = "):
+            cur["make_model"] = line[len("make-and-model = "):].strip()
+    if cur.get("uri", "").startswith("usb://"):
+        out.append(cur)
+    return out
+
+
+def install_usb(uri: str, name: str) -> tuple[bool, str]:
+    """Install a USB printer in CUPS via lpadmin with the everywhere model."""
+    if shutil.which("lpadmin") is None:
+        return False, "lpadmin not installed (apt install cups-client)"
+    try:
+        r = subprocess.run(
+            ["sudo", "-n", "lpadmin", "-p", name, "-E", "-v", uri, "-m", "everywhere"],
+            capture_output=True, text=True, timeout=30,
+        )
+        log = (r.stdout + r.stderr)[-2000:]
+        if r.returncode != 0:
+            return False, log or "lpadmin failed"
+        # Enable + accept jobs (idempotent).
+        subprocess.run(["sudo", "-n", "cupsenable", name], capture_output=True, timeout=5)
+        subprocess.run(["sudo", "-n", "cupsaccept", name], capture_output=True, timeout=5)
+        return True, log
+    except Exception as e:
+        return False, str(e)
+
