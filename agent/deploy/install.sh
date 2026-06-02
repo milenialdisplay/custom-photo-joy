@@ -11,7 +11,8 @@ sudo apt install -y \
   xrdp timeshift \
   network-manager dnsmasq-base \
   avahi-utils nmap \
-  qrencode python3-weasyprint
+  qrencode \
+  libpango-1.0-0 libpangoft2-1.0-0
 
 echo "==> CUPS + printing group"
 sudo systemctl enable --now cups
