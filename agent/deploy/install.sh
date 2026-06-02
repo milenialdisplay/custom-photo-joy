@@ -37,7 +37,29 @@ echo "==> mode toggle scripts"
 sudo install -m 0755 deploy/mode-new    /usr/local/bin/mode-new
 sudo install -m 0755 deploy/mode-old    /usr/local/bin/mode-old
 sudo install -m 0755 deploy/mode-status /usr/local/bin/mode-status
+sudo install -m 0755 deploy/set-printer.sh /usr/local/bin/dpoto-set-printer
 echo "old" | sudo tee /etc/dpoto-mode >/dev/null
+
+echo "==> Printer auto-detect (from CUPS)"
+CFG="$(cd "$(dirname "$0")/.." && pwd)/config.json"
+DETECTED="$(lpstat -p 2>/dev/null | awk '/^printer/{print $2; exit}')"
+CURRENT="$(python3 -c "import json;print(json.load(open('$CFG')).get('printer_name',''))" 2>/dev/null || echo "")"
+if [[ -n "$DETECTED" && ( -z "$CURRENT" || "$CURRENT" == "HP_M451" ) ]]; then
+  python3 - "$CFG" "$DETECTED" <<'PY'
+import json, sys
+p, name = sys.argv[1], sys.argv[2]
+c = json.load(open(p))
+c["printer_name"] = name
+open(p, "w").write(json.dumps(c, indent=2) + "\n")
+PY
+  echo "    Set printer_name=$DETECTED in config.json"
+elif [[ -n "$DETECTED" ]]; then
+  echo "    Keeping existing printer_name=$CURRENT (detected: $DETECTED)"
+else
+  echo "    No CUPS printer found yet. After adding one, run:"
+  echo "      sudo dpoto-set-printer <queue-name>"
+  echo "    (find the queue name with: lpstat -p)"
+fi
 
 cat <<EOF
 
