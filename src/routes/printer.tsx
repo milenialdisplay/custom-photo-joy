@@ -117,8 +117,16 @@ function PrinterPage() {
         const form = new FormData();
         form.append("file", f.file);
         form.append("paper_size", f.size);
+        form.append("paper_preset", "default");
+        form.append("copies", "1");
+        form.append("guest_id", guestId);
+        form.append("guest_name", "Web Guest");
+        form.append("guest_color", "#1b8c5f");
         const r = await fetch(`${agentUrl}/print`, { method: "POST", body: form });
-        if (!r.ok) throw new Error(`Print failed for ${f.file.name}`);
+        if (!r.ok) {
+          const msg = await r.text().catch(() => "");
+          throw new Error(`Print failed for ${f.file.name}: ${msg || r.status}`);
+        }
       }
       toast.success(`${files.length} file(s) sent to printer`);
       setFiles([]);
