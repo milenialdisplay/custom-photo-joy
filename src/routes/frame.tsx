@@ -22,7 +22,7 @@ import { CameraCapture } from "@/components/studio/CameraCapture";
 import { consumePendingCapture, dataUrlToFile } from "@/lib/pending-capture";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/studio")({
+export const Route = createFileRoute("/frame")({
   head: () => ({
     meta: [
       { title: "Frame Studio — dpotopoto.com" },
