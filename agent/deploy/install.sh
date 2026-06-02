@@ -6,7 +6,7 @@ set -e
 echo "==> System packages"
 sudo apt update
 sudo apt install -y \
-  cups hplip imagemagick \
+  cups hplip hplip-gui imagemagick \
   python3-pip python3-venv \
   xrdp timeshift \
   network-manager dnsmasq-base \
