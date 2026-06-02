@@ -4,6 +4,7 @@ import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
 import { BrandLogo } from "@/components/site/BrandLogo";
+import { BackToHome } from "@/components/site/BackToHome";
 import {
   PRESET_FRAMES,
   RATIOS,
@@ -260,9 +261,12 @@ function StudioPage() {
       <SiteNav />
 
       <header className="border-b border-primary/15 px-6 py-6">
-        <div className="mx-auto max-w-7xl">
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/60">// 02_FRAME_STUDIO</div>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Compose, frame, export.</h1>
+        <div className="mx-auto flex max-w-7xl items-start justify-between gap-4">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/60">// 02_FRAME_STUDIO</div>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Compose, frame, export.</h1>
+          </div>
+          <BackToHome />
         </div>
       </header>
 

@@ -36,6 +36,7 @@ interface QueueItem {
   status: JobStatus;
   paper_size: string;
   submitted_at: string;
+  copies?: number;
 }
 
 interface HealthResponse {
@@ -1166,6 +1167,9 @@ function PublicQueue({ queue, myJobId }: { queue: QueueItem[]; myJobId: string |
                   }`}
                 >
                   {isPrinting ? "● printing" : q.paper_size}
+                  {q.copies && q.copies > 1 ? (
+                    <span className="ml-2 text-foreground/70">× {q.copies}</span>
+                  ) : null}
                 </span>
               </li>
             );
