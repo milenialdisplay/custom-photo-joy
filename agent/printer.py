@@ -38,6 +38,7 @@ def print_file(
     media = {
         "2R": "Custom.3.5x5in",
         "4R": "Custom.4x6in",
+        "A4": "A4",
         "A5": "A5",
         "A6": "A6",
         "Square": "Custom.6x6in",
