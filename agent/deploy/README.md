@@ -19,6 +19,31 @@ the agent's Python venv, the systemd unit, and the `mode-old` / `mode-new` / `mo
 | `mode-new` | Stop the old auto-start app, start the print agent on boot. |
 | `mode-old` | Stop the print agent, restore the old auto-start app on boot. |
 | `mode-status` | Show which mode is active and printer status. |
+| `set-printer.sh` | Set the CUPS queue name in `config.json` and restart the agent. Installed as `/usr/local/bin/dpoto-set-printer`. |
+
+## Fast path on a new Dell
+
+```bash
+cd ~/agent
+bash deploy/install.sh                  # installs deps, venv, systemd unit; auto-detects printer
+mode-new                                # enable + start the agent on boot
+curl http://localhost:8080/health       # expect printer:"ready"
+```
+
+If `printer` shows `offline`, the CUPS queue name in `config.json` doesn't match. Find the real name and set it:
+
+```bash
+lpstat -p                               # shows queue names
+sudo dpoto-set-printer HP_LaserJet_400_color_M451nw
+```
+
+Then provision the booth identity (SSID, sticker, location label):
+
+```bash
+sudo bash deploy/provision.sh <location-id> --label "Mall A · Level 2"
+```
+
+| `mode-status` | Show which mode is active and printer status. |
 
 ## Wiring the toggle to your "old" app
 
