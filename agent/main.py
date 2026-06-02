@@ -86,9 +86,14 @@ async def submit_print(
     if paper_size not in {"2R", "4R", "A5", "A6", "Square", "A4"}:
         raise HTTPException(400, "invalid paper_size")
 
+    # Booth must be set up before phones can print.
+    if not CONFIG.get("setup_complete"):
+        return JSONResponse({"error": "setup_required"}, status_code=503)
+
     # Printer availability
     if printer.status(CONFIG["printer_name"]) == "offline":
         return JSONResponse({"error": "printer_offline"}, status_code=503)
+
 
     # Fair-use
     violation = policy.check(queue, guest_id, CONFIG)
