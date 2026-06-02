@@ -11,7 +11,8 @@ sudo apt install -y \
   xrdp timeshift \
   network-manager dnsmasq-base \
   avahi-utils nmap \
-  qrencode python3-weasyprint
+  qrencode \
+  libpango-1.0-0 libpangoft2-1.0-0
 
 echo "==> CUPS + printing group"
 sudo systemctl enable --now cups
@@ -26,7 +27,7 @@ echo "==> Python venv for the agent"
 cd "$(dirname "$0")/.."
 python3 -m venv .venv
 .venv/bin/pip install --upgrade pip
-.venv/bin/pip install fastapi uvicorn python-multipart pillow
+.venv/bin/pip install fastapi uvicorn python-multipart pillow weasyprint
 
 echo "==> systemd unit (installed, NOT enabled — toggle controls that)"
 sudo cp deploy/dpoto-agent.service /etc/systemd/system/dpoto-agent.service
