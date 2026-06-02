@@ -43,6 +43,23 @@ Then provision the booth identity (SSID, sticker, location label):
 sudo bash deploy/provision.sh <location-id> --label "Mall A · Level 2"
 ```
 
+## Print sizing
+
+All prints are auto-fit to the chosen paper. The pipeline checks the
+source image dimensions and picks one of two targets:
+
+- **Source ≥ 300 DPI of the paper** → downscale to 300 DPI (crisp).
+- **Source smaller** → upscale to 240 DPI (full-page, slightly soft).
+
+Output is JPEG (q=92) when no ICC profile is installed — small file, fast
+RIP, paper usually starts moving within ~10 s. When `profiles/sRGB.icc` and
+`profiles/<printer>.icc` are both present, output switches to LZW-compressed
+TIFF for accurate color (slower).
+
+Tunable in `config.json`: `print_dpi`, `upscale_dpi`, `jpeg_quality`.
+
+
+
 
 
 ## Wiring the toggle to your "old" app

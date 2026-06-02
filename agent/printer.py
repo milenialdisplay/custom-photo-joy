@@ -48,6 +48,8 @@ def print_file(
         time.sleep(0.5)
         return "dev-no-cups"
 
+    # No -o fit-to-page: the pipeline already produced an exact-paper-sized
+    # file at the right DPI, so fit-to-page would only re-scale and soften it.
     r = subprocess.run(
         ["lp", "-d", printer_name, "-n", str(copies), "-o", f"media={media}", path],
         capture_output=True, text=True, check=True, timeout=10,
