@@ -50,7 +50,9 @@ def health():
         "agent": f"dpoto-agent {CONFIG['agent_version']}",
         "printer": printer.status(CONFIG["printer_name"]),
         "queue_depth": queue.depth(),
+        "setup_complete": bool(CONFIG.get("setup_complete", False)),
     }
+
 
 
 @app.get("/queue")
@@ -86,9 +88,14 @@ async def submit_print(
     if paper_size not in {"2R", "4R", "A5", "A6", "Square", "A4"}:
         raise HTTPException(400, "invalid paper_size")
 
+    # Booth must be set up before phones can print.
+    if not CONFIG.get("setup_complete"):
+        return JSONResponse({"error": "setup_required"}, status_code=503)
+
     # Printer availability
     if printer.status(CONFIG["printer_name"]) == "offline":
         return JSONResponse({"error": "printer_offline"}, status_code=503)
+
 
     # Fair-use
     violation = policy.check(queue, guest_id, CONFIG)
@@ -465,4 +472,322 @@ send.addEventListener('click', async () => {
 WEB_DIR = ROOT / "web"
 if WEB_DIR.exists() and any(WEB_DIR.iterdir()):
     app.mount("/app", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
+
+
+# ════════════════════════ guided USB setup wizard ════════════════════════
+# Run this from the booth operator's browser at http://<dell-ip>:8080/setup
+# before any phone is allowed to print. Walks through:
+#   1. Detect USB-connected printers
+#   2. Install one in CUPS via lpadmin -m everywhere
+#   3. Send a test page and poll until CUPS reports `done`
+#   4. Mark setup_complete=true in config.json — unlocks /print + /booth
+
+
+class UsbInstallBody(BaseModel):
+    uri: str
+    name: str = "HP_M451"
+    default_paper_size: str | None = None
+
+
+@app.get("/setup/usb/scan")
+def setup_usb_scan():
+    return {
+        "usb_devices": discovery.usb_devices(),
+        "installed": discovery.lpstat_printers(),
+        "setup_complete": bool(CONFIG.get("setup_complete", False)),
+        "current_printer": CONFIG.get("printer_name", ""),
+    }
+
+
+@app.post("/setup/usb/install")
+def setup_usb_install(body: UsbInstallBody):
+    if not body.uri.startswith("usb://"):
+        return JSONResponse({"error": "uri_not_usb"}, status_code=400)
+    name = (body.name or "HP_M451").strip()
+    if not name or any(c.isspace() for c in name):
+        return JSONResponse({"error": "invalid_printer_name"}, status_code=400)
+
+    # If a printer with that name is already installed, adopt it.
+    if name not in discovery.lpstat_printers():
+        ok, log = discovery.install_usb(body.uri, name)
+        if not ok:
+            return JSONResponse({"error": "lpadmin_failed", "log": log}, status_code=500)
+
+    CONFIG["printer_name"] = name
+    if body.default_paper_size:
+        if body.default_paper_size not in VALID_SIZES:
+            return JSONResponse({"error": "invalid_paper_size"}, status_code=400)
+        CONFIG["default_paper_size"] = body.default_paper_size
+    # Reset setup-complete; operator must pass a test page next.
+    CONFIG["setup_complete"] = False
+    (ROOT / "config.json").write_text(json.dumps(CONFIG, indent=2) + "\n")
+    return {"ok": True, "printer_name": name,
+            "default_paper_size": CONFIG.get("default_paper_size", "A5")}
+
+
+@app.post("/setup/complete")
+def setup_complete():
+    """Operator confirms the test page printed correctly — unlock phone flow."""
+    if printer.status(CONFIG["printer_name"]) != "ready":
+        return JSONResponse({"error": "printer_not_ready"}, status_code=503)
+    CONFIG["setup_complete"] = True
+    (ROOT / "config.json").write_text(json.dumps(CONFIG, indent=2) + "\n")
+    return {"ok": True}
+
+
+@app.post("/setup/reset")
+def setup_reset():
+    CONFIG["setup_complete"] = False
+    (ROOT / "config.json").write_text(json.dumps(CONFIG, indent=2) + "\n")
+    return {"ok": True}
+
+
+@app.get("/setup", response_class=HTMLResponse)
+def setup_page():
+    return SETUP_HTML
+
+
+SETUP_HTML = r"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>dpotopoto · booth setup</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0a0a0f; color:#e8e8e8;
+         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+         padding: 24px; max-width: 760px; margin: 0 auto; }
+  h1 { color:#73ffb8; font-size: 14px; letter-spacing:.3em; text-transform:uppercase; }
+  h2 { font-size: 13px; letter-spacing:.2em; text-transform:uppercase;
+       color:#73ffb8; margin: 0 0 8px; }
+  .step { border:1px solid #222; padding: 18px; margin-bottom: 14px;
+          background:#11131a; position:relative; }
+  .step[data-state=done]   { border-color:#1b8c5f; }
+  .step[data-state=active] { border-color:#73ffb8; box-shadow:0 0 0 1px #73ffb830; }
+  .step[data-state=locked] { opacity:.45; }
+  .num { position:absolute; top:-10px; left:-10px; background:#0a0a0f;
+         border:1px solid #444; width:24px; height:24px; display:flex;
+         align-items:center; justify-content:center; font-size:11px; color:#73ffb8; }
+  button { background:transparent; border:1px solid #444; color:#ccc;
+           padding:8px 14px; font: inherit; cursor:pointer; margin-right:6px; }
+  button:hover:not(:disabled) { border-color:#73ffb8; color:#73ffb8; }
+  button.primary { background:#73ffb8; color:#0a0a0f; border-color:#73ffb8; font-weight:700; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  input { background:#0a0a0f; border:1px solid #333; color:#e8e8e8;
+          padding:8px 10px; font: inherit; }
+  table { width:100%; border-collapse:collapse; margin-top: 8px; font-size: 12px; }
+  td, th { border-bottom:1px solid #222; padding:6px 8px; text-align:left; }
+  .pill { display:inline-block; padding:2px 8px; border:1px solid #444;
+          font-size:10px; letter-spacing:.15em; text-transform:uppercase; }
+  .pill.ok  { border-color:#73ffb8; color:#73ffb8; }
+  .pill.bad { border-color:#ff7373; color:#ff7373; }
+  .log { font-size:11px; color:#888; white-space:pre-wrap; max-height:120px;
+         overflow:auto; margin-top:8px; border-top:1px dashed #222; padding-top:6px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+  a { color:#73ffb8; }
+</style></head><body>
+  <h1>// dpotopoto booth setup</h1>
+  <p style="font-size:12px; color:#888;">
+    Run this once per booth, after plugging the printer into the Dell via USB.
+    Phones can't print until every step shows
+    <span class="pill ok">ok</span>.
+  </p>
+
+  <div class="step" id="s1" data-state="active">
+    <div class="num">1</div>
+    <h2>Detect USB printer</h2>
+    <div class="row">
+      <button id="scanBtn">Scan USB</button>
+      <span id="scanState"></span>
+    </div>
+    <table id="devTbl" hidden>
+      <thead><tr><th>Make / model</th><th>URI</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="scanHint" style="font-size:11px; color:#888; margin-top:8px;"></div>
+  </div>
+
+  <div class="step" id="s2" data-state="locked">
+    <div class="num">2</div>
+    <h2>Install in CUPS</h2>
+    <div class="row">
+      <label style="font-size:11px; color:#888;">Printer name</label>
+      <input id="pname" value="HP_M451" size="14">
+      <button id="installBtn" disabled>Install selected</button>
+      <span id="installState"></span>
+    </div>
+    <div class="log" id="installLog" hidden></div>
+  </div>
+
+  <div class="step" id="s3" data-state="locked">
+    <div class="num">3</div>
+    <h2>Test page</h2>
+    <p style="font-size:12px; color:#888; margin:4px 0;">
+      Sends the bundled test chart. Check the paper that comes out before continuing.
+    </p>
+    <div class="row">
+      <button id="testBtn" disabled>Send test page</button>
+      <span id="testState"></span>
+    </div>
+  </div>
+
+  <div class="step" id="s4" data-state="locked">
+    <div class="num">4</div>
+    <h2>Confirm &amp; unlock</h2>
+    <p style="font-size:12px; color:#888; margin:4px 0;">
+      Only press this if the test page came out cleanly.
+      It unlocks the phone print flow at <code>/booth</code> and <code>/printer</code>.
+    </p>
+    <div class="row">
+      <button id="confirmBtn" class="primary" disabled>Mark booth ready</button>
+      <button id="resetBtn">Reset (re-lock)</button>
+      <span id="finalState"></span>
+    </div>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+let selected = null;  // {uri, make_model}
+let installedName = null;
+
+function setStep(id, state) { $(id).dataset.state = state; }
+
+async function refreshHealth() {
+  try {
+    const h = await fetch('/health',{cache:'no-store'}).then(r=>r.json());
+    if (h.setup_complete) {
+      $('finalState').innerHTML = '<span class="pill ok">booth ready</span>';
+      setStep('s4','done');
+    }
+  } catch {}
+}
+
+async function scan() {
+  $('scanState').innerHTML = '<span class="pill">scanning…</span>';
+  let data;
+  try { data = await fetch('/setup/usb/scan').then(r=>r.json()); }
+  catch (e) {
+    $('scanState').innerHTML = '<span class="pill bad">agent error</span>';
+    return;
+  }
+  const devs = data.usb_devices || [];
+  const tbody = $('devTbl').querySelector('tbody');
+  tbody.innerHTML = devs.map((d,i) => `
+    <tr>
+      <td>${d.make_model || '(unknown)'}</td>
+      <td style="font-size:10px; color:#888">${d.uri}</td>
+      <td><button data-i="${i}" class="pickBtn">Use</button></td>
+    </tr>`).join('');
+  $('devTbl').hidden = devs.length === 0;
+  $('scanHint').textContent = devs.length
+    ? `${devs.length} USB device(s) found. Pick the printer.`
+    : 'No USB printers detected. Check the cable + power, then scan again.';
+  $('scanState').innerHTML = devs.length
+    ? '<span class="pill ok">ok</span>'
+    : '<span class="pill bad">none</span>';
+
+  tbody.querySelectorAll('.pickBtn').forEach(b => b.addEventListener('click', () => {
+    selected = devs[+b.dataset.i];
+    tbody.querySelectorAll('tr').forEach(tr => tr.style.background = '');
+    b.closest('tr').style.background = '#1b8c5f22';
+    if (selected.make_model && /m451/i.test(selected.make_model)) $('pname').value = 'HP_M451';
+    setStep('s1','done'); setStep('s2','active');
+    $('installBtn').disabled = false;
+  }));
+
+  // If a printer is already installed + booth was set up before, skip ahead.
+  if (data.current_printer && data.installed.includes(data.current_printer)) {
+    installedName = data.current_printer;
+    $('pname').value = data.current_printer;
+    setStep('s2','done'); setStep('s3','active');
+    $('testBtn').disabled = false;
+    if (data.setup_complete) { setStep('s3','done'); setStep('s4','done'); }
+    else                     { setStep('s4','active'); $('confirmBtn').disabled = false; }
+  }
+}
+
+$('scanBtn').addEventListener('click', scan);
+
+$('installBtn').addEventListener('click', async () => {
+  if (!selected) return;
+  const name = $('pname').value.trim();
+  $('installBtn').disabled = true;
+  $('installState').innerHTML = '<span class="pill">installing…</span>';
+  $('installLog').hidden = true;
+  let res;
+  try {
+    res = await fetch('/setup/usb/install', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({ uri: selected.uri, name })
+    });
+  } catch (e) {
+    $('installState').innerHTML = '<span class="pill bad">network error</span>';
+    $('installBtn').disabled = false; return;
+  }
+  const body = await res.json();
+  if (!res.ok) {
+    $('installState').innerHTML = '<span class="pill bad">failed</span>';
+    $('installLog').textContent = body.log || JSON.stringify(body);
+    $('installLog').hidden = false;
+    $('installBtn').disabled = false; return;
+  }
+  installedName = body.printer_name;
+  $('installState').innerHTML = '<span class="pill ok">installed</span>';
+  setStep('s2','done'); setStep('s3','active');
+  $('testBtn').disabled = false;
+});
+
+$('testBtn').addEventListener('click', async () => {
+  $('testBtn').disabled = true;
+  $('testState').innerHTML = '<span class="pill">sending…</span>';
+  let res;
+  try { res = await fetch('/printer/test', {method:'POST'}).then(r=>r.json()); }
+  catch { $('testState').innerHTML = '<span class="pill bad">network error</span>';
+          $('testBtn').disabled = false; return; }
+  if (res.error) {
+    $('testState').innerHTML = '<span class="pill bad">'+res.error+'</span>';
+    $('testBtn').disabled = false; return;
+  }
+  const jid = res.job_id;
+  $('testState').innerHTML = '<span class="pill">queued · '+jid+'</span>';
+  const iv = setInterval(async () => {
+    const j = await fetch('/jobs/'+jid).then(r=>r.json()).catch(()=>null);
+    if (!j) return;
+    $('testState').innerHTML = '<span class="pill">'+j.status+'</span>';
+    if (j.status === 'done') {
+      clearInterval(iv);
+      $('testState').innerHTML = '<span class="pill ok">printed</span>';
+      setStep('s3','done'); setStep('s4','active');
+      $('confirmBtn').disabled = false;
+      $('testBtn').disabled = false;
+    } else if (j.status === 'failed') {
+      clearInterval(iv);
+      $('testState').innerHTML = '<span class="pill bad">failed: '+(j.error||'?')+'</span>';
+      $('testBtn').disabled = false;
+    }
+  }, 1500);
+});
+
+$('confirmBtn').addEventListener('click', async () => {
+  $('confirmBtn').disabled = true;
+  const r = await fetch('/setup/complete', {method:'POST'});
+  const b = await r.json();
+  if (!r.ok) {
+    $('finalState').innerHTML = '<span class="pill bad">'+(b.error||'failed')+'</span>';
+    $('confirmBtn').disabled = false; return;
+  }
+  $('finalState').innerHTML = '<span class="pill ok">booth ready · phones unlocked</span>';
+  setStep('s4','done');
+});
+
+$('resetBtn').addEventListener('click', async () => {
+  await fetch('/setup/reset', {method:'POST'});
+  $('finalState').innerHTML = '<span class="pill">locked</span>';
+  setStep('s4','active'); $('confirmBtn').disabled = false;
+});
+
+scan(); refreshHealth();
+</script>
+</body></html>
+"""
 
