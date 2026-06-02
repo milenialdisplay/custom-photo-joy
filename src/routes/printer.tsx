@@ -36,15 +36,43 @@ interface SelectedFile {
 }
 
 function PrinterPage() {
-  // Agent URL — same-host (booth Wi-Fi) on port 8765 by default.
+  // Agent URL — booth agent runs on port 8080 (see agent/deploy/dpoto-agent.service).
+  // Override priority: ?agent=http://... query → localStorage → same-host :8080.
+  // Lets a phone on lovable preview point at a Dell IP without rebuilding.
   const agentUrl = useMemo(() => {
     if (typeof window === "undefined") return null;
-    const host = window.location.hostname;
-    // On lovable preview/published, no agent — show offline state.
-    if (host.endsWith("lovable.app") || host === "localhost") {
-      return `http://${host}:8765`;
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get("agent");
+    if (fromQuery) {
+      try {
+        localStorage.setItem("dpotopoto.agentUrl", fromQuery);
+      } catch {
+        /* ignore */
+      }
+      return fromQuery.replace(/\/$/, "");
     }
-    return `http://${host}:8765`;
+    try {
+      const stored = localStorage.getItem("dpotopoto.agentUrl");
+      if (stored) return stored.replace(/\/$/, "");
+    } catch {
+      /* ignore */
+    }
+    return `http://${window.location.hostname}:8080`;
+  }, []);
+
+  // Stable per-browser guest id so the agent's per-guest quota works.
+  const guestId = useMemo(() => {
+    if (typeof window === "undefined") return "ssr";
+    try {
+      let g = localStorage.getItem("dpotopoto.guestId");
+      if (!g) {
+        g = "guest-" + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem("dpotopoto.guestId", g);
+      }
+      return g;
+    } catch {
+      return "guest-" + Math.random().toString(36).slice(2, 10);
+    }
   }, []);
 
   const cfg = useBoothConfig(agentUrl);
