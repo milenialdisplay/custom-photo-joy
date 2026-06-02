@@ -4,7 +4,7 @@ import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
 import { BrandLogo } from "@/components/site/BrandLogo";
-import { BackToHome } from "@/components/site/BackToHome";
+
 import {
   PRESET_FRAMES,
   RATIOS,
@@ -22,7 +22,7 @@ import { CameraCapture } from "@/components/studio/CameraCapture";
 import { consumePendingCapture, dataUrlToFile } from "@/lib/pending-capture";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/studio")({
+export const Route = createFileRoute("/frame")({
   head: () => ({
     meta: [
       { title: "Frame Studio — dpotopoto.com" },
@@ -129,7 +129,7 @@ function StudioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Consume a pending capture handed off from /camera-test → load into slot 0
+  // Consume a pending capture handed off from /snap → load into slot 0
   useEffect(() => {
     const pending = consumePendingCapture();
     if (!pending) return;
@@ -266,7 +266,7 @@ function StudioPage() {
             <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/60">// 02_FRAME_STUDIO</div>
             <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Compose, frame, export.</h1>
           </div>
-          <BackToHome />
+          
         </div>
       </header>
 

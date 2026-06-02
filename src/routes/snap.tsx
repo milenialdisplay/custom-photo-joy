@@ -10,10 +10,10 @@ type FacingMode = "user" | "environment";
 
 type CameraStatus = "idle" | "starting" | "ready" | "error" | "denied";
 
-export const Route = createFileRoute("/camera-test")({
+export const Route = createFileRoute("/snap")({
   head: () => ({
     meta: [
-      { title: "Camera Test — dpotopoto.com" },
+      { title: "Photo Booth — dpotopoto.com" },
       { name: "description", content: "Test your camera before entering the photo booth studio." },
     ],
   }),
@@ -98,7 +98,7 @@ function CameraTestPage() {
   function useCaptureInStudio() {
     if (!capturedUrl) return;
     setPendingCapture(capturedUrl);
-    navigate({ to: "/studio" });
+    navigate({ to: "/frame" });
   }
 
   async function startCamera() {
@@ -271,7 +271,7 @@ function CameraTestPage() {
                   Camera works
                 </div>
               )}
-              <Link to="/studio">
+              <Link to="/frame">
                 <NeonButton size="md" glow disabled={!isReady}>
                   <span className="flex items-center gap-2">
                     Start Designing

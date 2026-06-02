@@ -32,10 +32,10 @@ function Landing() {
               Turn any screen into a professional capture station. Instant prints, branded frames, pure arcade energy — for parties, weddings, and brand events.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link to="/camera-test">
+              <Link to="/snap">
                 <NeonButton size="lg" glow>Start Free Trial</NeonButton>
               </Link>
-              <Link to="/camera-test">
+              <Link to="/snap">
                 <NeonButton size="lg" variant="ghost">Try a Demo Booth</NeonButton>
               </Link>
             </div>
@@ -98,7 +98,7 @@ function Landing() {
                 desc: "Single shots or classic 4-frame strips. Front, back, webcam, DSLR — any camera works.",
                 img: servicePhoto,
                 alt: "Printed photo strips on a dark surface",
-                href: "/camera-test" as const,
+                href: "/snap" as const,
               },
               {
                 tag: "02 / Edit",
@@ -106,7 +106,7 @@ function Landing() {
                 desc: "Drop in your logo, slide the hue, drag the caption. Frames adapt in real time.",
                 img: serviceFrame,
                 alt: "Frame editor UI with neon sliders",
-                href: "/studio" as const,
+                href: "/frame" as const,
               },
               {
                 tag: "03 / Print",
