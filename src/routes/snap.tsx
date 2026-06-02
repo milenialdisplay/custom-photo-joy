@@ -10,7 +10,7 @@ type FacingMode = "user" | "environment";
 
 type CameraStatus = "idle" | "starting" | "ready" | "error" | "denied";
 
-export const Route = createFileRoute("/camera-test")({
+export const Route = createFileRoute("/snap")({
   head: () => ({
     meta: [
       { title: "Camera Test — dpotopoto.com" },
