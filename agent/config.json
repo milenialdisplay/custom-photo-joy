@@ -3,8 +3,14 @@
   "location_label": "Unset Booth",
   "ssid": "dpotopoto-unset",
   "printer_name": "HP_M451",
-  "agent_version": "0.2.0",
+  "agent_version": "0.3.0",
   "default_paper_size": "A5",
+  "prices_idr": {
+    "A4": 15000,
+    "A5": 5000
+  },
+  "max_copies_per_job": 10,
+  "max_files_per_order": 10,
   "cooldown_seconds": 60,
   "per_guest_quota": 5,
   "max_queue_depth": 20,

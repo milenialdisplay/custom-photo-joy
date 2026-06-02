@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
+import { BackToHome } from "@/components/site/BackToHome";
 
 export const Route = createFileRoute("/printer")({
   head: () => ({
@@ -35,6 +36,7 @@ interface QueueItem {
   status: JobStatus;
   paper_size: string;
   submitted_at: string;
+  copies?: number;
 }
 
 interface HealthResponse {
@@ -126,6 +128,9 @@ function PrinterPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteNav />
+      <div className="mx-auto flex max-w-7xl justify-end px-6 pt-4">
+        <BackToHome />
+      </div>
       <Hero />
       <MainPanel />
       <SiteFooter />
@@ -743,13 +748,13 @@ function SendPrintForm({
             ))}
           </select>
         </Field>
-        <Field label="Copies">
+        <Field label="Copies (1–10)">
           <input
             type="number"
             min={1}
-            max={3}
+            max={10}
             value={copies}
-            onChange={(e) => setCopies(Math.max(1, Math.min(3, Number(e.target.value) || 1)))}
+            onChange={(e) => setCopies(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
             className="w-full border border-primary/20 bg-background px-3 py-2 font-mono text-xs"
           />
         </Field>
@@ -1162,6 +1167,9 @@ function PublicQueue({ queue, myJobId }: { queue: QueueItem[]; myJobId: string |
                   }`}
                 >
                   {isPrinting ? "● printing" : q.paper_size}
+                  {q.copies && q.copies > 1 ? (
+                    <span className="ml-2 text-foreground/70">× {q.copies}</span>
+                  ) : null}
                 </span>
               </li>
             );

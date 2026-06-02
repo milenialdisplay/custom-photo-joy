@@ -1,106 +1,189 @@
-# Printer Booth — Phase 1: One Booth, Built for Many
+# `/print` redesign — file picker + adjustable pricing + connect-printer + queue
 
-## The model (so future-you isn't stuck)
+## Scope (DESIGN ONLY — payment wiring deferred until /kiosk is also done)
 
-Each "booth" = **1 Dell Wyse + 1 laser printer** running as a self-contained **offline Wi-Fi vending machine**. No internet at the booth. No cloud. The user's phone joins the booth's Wi-Fi, opens dpotopoto (PWA cached on their phone), prints, walks away.
+1. Raise per-job copies cap 3 → **10** (agent + studio + printer + README)
+2. Redesign `/print` to match the user's ASCII layout
+3. **Connect printer** indicator top-right (orange → green)
+4. **Select files** picker, max 10 files
+5. Per-file size dropdown (A4 / A5) + live per-row price + total
+6. **Pay now** button (UI only — wired in a later phase)
+7. **Upload & print** button (grey, disabled until paid)
+8. Queue strip at the bottom — printing box + next-up boxes
+9. "← Back to main page" link top-right of header on the four product sub-pages
+10. Starting prices: **A4 = Rp 15,000**, **A5 = Rp 5,000** — adjustable per booth, not hardcoded
 
-```text
-   ┌─────────── BOOTH (e.g. "Mall-A-L2") ────────────┐
-   │                                                 │
-   │   Dell Wyse  ──USB──►  HP M451 (or any laser)   │
-   │     │                                           │
-   │     ├─ Wi-Fi AP   SSID: dpotopoto-mall-a-l2     │
-   │     │             PSK : printed on QR sticker   │
-   │     ├─ Agent      http://10.42.0.1:8765         │
-   │     └─ Location ID: "mall-a-l2"                 │
-   │                                                 │
-   │   📱 QR sticker on the booth:                   │
-   │      → joins Wi-Fi + opens app + locks location │
-   └─────────────────────────────────────────────────┘
+## "← Back to main page" link — scope
+
+Top-right of the header on each product sub-page:
+
+| Page | Route | Status |
+|---|---|---|
+| Snap photo | `/snap` (or current snap route) | already done — verify link present, add if missing |
+| Frame studio | `/studio` | already done — verify link present, add if missing |
+| Printer | `/printer` and `/print` | **add now** (this plan) |
+| Kiosk | `/kiosk` | add in the next phase |
+
+Single shared component so all four pages stay visually identical:
+
+```tsx
+// src/components/site/BackToHome.tsx
+import { Link } from "@tanstack/react-router";
+
+export function BackToHome() {
+  return (
+    <Link
+      to="/"
+      className="font-mono text-xs uppercase tracking-[0.3em] text-foreground/60 hover:text-primary"
+    >
+      ← Back to main page
+    </Link>
+  );
+}
 ```
 
-Every booth looks identical except for **location_id**, **SSID**, **PSK**. That's the only thing the admin changes per unit. The app code, the agent code, the install script — same everywhere.
+Used like `<BackToHome />` in the top-right of each sub-page header.
 
-## Why this shape
+## Out of scope (confirmed)
 
-- **No internet at booth** = no SIM, no router, no monthly fee, no "the Wi-Fi went down" support call.
-- **Dell-as-AP** = printer doesn't need its own Wi-Fi; works with any USB laser regardless of brand. M451, Canon, Brother — same flow.
-- **QR does everything** = one scan joins the Wi-Fi *and* opens the right app screen. User never types an SSID, never picks a location from a list, never picks the wrong printer.
-- **Location ID baked in at provisioning** = no admin screen, no pairing flow, no auth. The sticker IS the registration.
+- Real Midtrans / Lemon Squeezy wiring (after `/kiosk` is done)
+- Lovable Cloud / orders DB / webhooks
+- Real upload to agent on green-button click
+- 24h per-guest quota (queue is the only fairness mechanism)
+- 60s cooldown
+- **Bulk pricing discounts — explicitly NOT included**
+- Operator price-editor UI (prices adjustable via config now; admin screen later)
 
-## Phase 1 scope (this build)
+## Pricing — adjustable, not locked
 
-Build the **single-booth setup screen + provisioning script**. One Dell, one printer, end-to-end working. Multi-booth requires literally zero new code — only running the provisioning script again with a different location_id.
+Lives in `agent/config.json` so each booth can have its own rates and the operator can edit anytime **without redeploying the web app**:
 
-### What gets built
-
-**1. Dell side — `agent/deploy/provision.sh`** (run once per booth, by admin, over SSH)
-- Prompts admin for: `LOCATION_ID` (e.g. `mall-a-l2`), `WIFI_PSK` (8-char random, suggested)
-- Configures Dell as Wi-Fi AP via NetworkManager: SSID `dpotopoto-<location_id>`, gateway `10.42.0.1`, DHCP for clients
-- Runs `hp-setup -i` discovery (existing plan) to auto-find and install the USB/LAN printer
-- Writes `agent/config.json` with `{ location_id, printer_name, ssid, psk }`
-- Generates a printable **QR sticker PDF** (`booth-<location_id>.pdf`) containing:
-  - Wi-Fi join QR (`WIFI:T:WPA;S:...;P:...;;` — phones auto-join on scan)
-  - App-open QR (`http://10.42.0.1:8765/print?loc=<location_id>`)
-  - Combined as one QR if possible, else two side-by-side
-- Enables `dpoto-agent.service` (already in earlier plan)
-
-**2. Agent — adds to existing `agent/main.py`**
-- `GET /print?loc=<id>` — serves the cached PWA shell, injects `location_id` so the UI locks to this booth
-- `GET /api/location` — returns `{ location_id, printer_name }` for the UI header
-- `POST /api/print` — accepts file/image, enqueues via CUPS, returns job id
-- `GET /api/jobs/:id` — poll status
-- Reuses discovery endpoints from earlier plan for the **admin-only** setup screen below
-
-**3. App — `src/routes/printer.setup.tsx`** (admin-facing, runs from admin's laptop on the booth's Wi-Fi during provisioning)
-- Step 1: "Connected to booth?" → pings `http://10.42.0.1:8765/health`
-- Step 2: "Discover printer" → calls agent `/discover`, lets admin pick if multiple
-- Step 3: "Configure" → POSTs choice to agent `/printer/configure`
-- Step 4: "Test print" → sends test page, polls job
-- Step 5: "Done — print the sticker" → shows the PDF the provision script generated, instructions to laminate + stick on booth
-- Single linear wizard, no auth (LAN-only, no internet exposure)
-
-**4. App — `src/routes/print.tsx`** (end-user flow, opened by QR)
-- Reads `?loc=` from URL, shows "Printing at: Mall A, Level 2"
-- Upload-or-camera → preview → Print → progress → "Take your print from the tray ↓"
-- Pure client-side; talks only to `http://10.42.0.1:8765` (same origin as the QR URL, so no CORS, no mixed-content)
-
-### Out of scope (deferred, but doesn't block scaling)
-
-- Payment / credits (drop in later as a step before `POST /api/print`)
-- Multi-printer-per-booth (architecture supports it; UI assumes one)
-- Remote monitoring of booths (would need internet — separate decision later)
-- Admin dashboard listing all booths — not needed; each booth is independent
-
-## File changes (technical)
-
-Agent (`agent/`):
-- `deploy/provision.sh` — NEW; orchestrates AP setup + printer install + QR PDF generation (uses `qrencode` + `wkhtmltopdf` or `weasyprint`)
-- `deploy/install.sh` — add `network-manager`, `dnsmasq`, `qrencode`, `weasyprint`, `avahi-utils`, `nmap`, `hplip`
-- `main.py` — add `/print`, `/api/location`, `/api/print`, `/api/jobs/:id`, `/discover`, `/printer/configure`, `/printer/test`
-- `config.json` — schema: `{ location_id, location_label, printer_name, ssid }`
-- `discovery.py` — NEW; mDNS + nmap helpers
-- `README.md` — "How to provision a new booth in 5 minutes"
-
-App (`src/`):
-- `routes/printer.setup.tsx` — NEW; admin wizard
-- `routes/print.tsx` — NEW; end-user print flow
-- `routes/printer.tsx` — add Setup link
-- No backend/Lovable Cloud needed for Phase 1 (everything runs on the Dell)
-
-## Provisioning a new booth (the admin flow this enables)
-
-```text
-1. Plug Dell + printer at the new location, power on
-2. SSH into Dell (over a temp Ethernet/USB-tether, one time)
-3. Run:  sudo ./provision.sh mall-b-l1
-4. Script prints: "Done. Open booth-mall-b-l1.pdf and laminate the sticker."
-5. Stick the QR on the booth
-6. Walk away. Booth is live.
+```json
+{
+  "location_id": "mall-a-l2",
+  "printer_name": "HP_M451",
+  "prices_idr": { "A4": 15000, "A5": 5000 },
+  "max_copies_per_job": 10,
+  "max_files_per_order": 10
+}
 ```
 
-Repeat for booth #2, #50, #500 — same script, different ID. No code change, no app deploy, no admin screen in the cloud, no central database.
+Web flow:
+1. `/print` loads → `GET http://10.42.0.1:8080/api/config`.
+2. UI renders prices + limits from the response.
+3. Offline / no agent → fall back to defaults in `src/lib/pricing.ts` + small banner "Showing default prices — connect to the booth for live pricing."
 
-## Open question worth confirming before I build
+## `/print` layout (matches the user's ASCII sketch)
 
-Confirm: **one printer per booth always** (Phase 1 assumes this). If a single booth ever needs 2 printers (e.g. color + B&W), the QR/URL flow would need a printer picker on the user screen — small change, but better to know now.
+```text
+┌──────────────────────────────────────────────────────────┐
+│ dpotopoto.com                          ← Back to main page│
+│                                                          │
+│ Printing at: Mall A · L2     [● Connect printer ]        │
+│                              (orange=offline, green=ready)│
+│                                                          │
+│   ┌─────────────────────────┐                            │
+│   │ 📁 Select files (max 10)│                            │
+│   └─────────────────────────┘                            │
+│                                                          │
+│   File              Size       Price                     │
+│   ───────────────────────────────────                    │
+│   photo-01.jpg      [A5 ▾]    Rp 5,000                   │
+│   photo-02.jpg      [A4 ▾]    Rp 15,000                  │
+│   photo-03.jpg      [A5 ▾]    Rp 5,000                   │
+│                     ────────────────                     │
+│                     Total:    Rp 25,000                  │
+│                                                          │
+│              ┌─────────────────────┐                     │
+│              │   💳 Pay now        │                     │
+│              └─────────────────────┘                     │
+│                                                          │
+│              ┌─────────────────────┐                     │
+│              │ ⬆ Upload & print    │ (grey, disabled)    │
+│              └─────────────────────┘                     │
+│                                                          │
+│   Queue                                                  │
+│   ┌──────┐ ┌──────┐ ┌──────┐                             │
+│   │ ●    │ │ next │ │ next │  ← printing pulses green    │
+│   │print │ │      │ │      │     others muted grey       │
+│   └──────┘ └──────┘ └──────┘                             │
+└──────────────────────────────────────────────────────────┘
+```
+
+## Connect indicator behavior
+
+- On mount, `GET /api/health` against the agent URL (from `?agent=` or `localStorage`).
+- No response → orange "Connect printer" pill. Click → dialog with steps ("Join the booth Wi-Fi, then retry").
+- 200 OK → green "Printer ready · {printer_name}".
+- Re-polls every 10s.
+
+## Queue strip behavior
+
+- Polls `GET /api/jobs` every 3s once printer is connected.
+- Up to 5 small boxes; first = printing (pulsing green), rest = next (muted grey). Empty queue → single "Idle" box.
+- Matches operator-console styling on `/printer` for visual consistency.
+
+## File-picker flow (UI only, no real upload yet)
+
+1. **Select files** → native `<input type="file" multiple accept="image/*,application/pdf">`, capped at `max_files_per_order`.
+2. Files held in memory; rendered with A4/A5 dropdown + per-row price.
+3. Total recomputes on every change. **Flat per-sheet pricing, no bulk discount.**
+4. **Pay now** → toast "Payment coming soon — design phase".
+5. **Upload & print** → stays disabled+grey. Tooltip: "Available after payment".
+
+## Copies-cap changes (3 → 10)
+
+| File | Change |
+|---|---|
+| `agent/main.py` | Validate `1 ≤ copies ≤ 10`, 400 `{error:"copies_out_of_range", max:10}` on overflow |
+| `agent/README.md` | Contract block → `copies (1-10)` |
+| `agent/config.json` | Add `max_copies_per_job: 10` |
+| `src/routes/studio.tsx` | Copies selector → 1–10 stepper with clamp |
+| `src/routes/printer.tsx` | Operator queue row shows `× N` |
+
+**Acceptance:** `copies=10` → 200, one job, `lp -n 10` → 10 sheets. `copies=11` → 400 with JSON above. Operator console shows "× 10". README matches code.
+
+## Files to create / modify
+
+- **create** `src/components/site/BackToHome.tsx`
+- **modify** `src/routes/print.tsx` — full redesign + `<BackToHome />`
+- **modify** `src/routes/printer.tsx` — `× N` badge + `<BackToHome />`
+- **modify** `src/routes/studio.tsx` — 1–10 copies stepper + verify/add `<BackToHome />`
+- **modify** snap-photo route — verify/add `<BackToHome />`
+- **modify** `src/routes/kiosk.tsx` — `<BackToHome />` will be added in the next phase
+- **create** `src/lib/pricing.ts` — defaults + helpers (`formatIDR`, `priceFor`, `MAX_*`)
+- **create** `src/hooks/useBoothConfig.ts` — fetches `/api/config`, falls back to defaults
+- **create** `src/components/print/FileRow.tsx`
+- **create** `src/components/print/ConnectIndicator.tsx`
+- **create** `src/components/print/PrintQueueStrip.tsx`
+- **modify** `agent/main.py` — copies validator 1–10 + `GET /api/config`
+- **modify** `agent/README.md` — contract block
+- **modify** `agent/config.json` — `prices_idr`, `max_copies_per_job`, `max_files_per_order`
+
+## Build order
+
+1. `BackToHome` component → add to `/snap`, `/studio`, `/printer`, `/print` (kiosk gets it in its own phase)
+2. Copies cap 3 → 10 across agent + studio + printer + README
+3. Pricing defaults in `src/lib/pricing.ts`
+4. Agent: `GET /api/config` + bump validators
+5. `useBoothConfig` hook
+6. `ConnectIndicator` wired to `/api/health`
+7. File picker + `FileRow` + total
+8. Pay now + Upload buttons (visual states only)
+9. `PrintQueueStrip` wired to `/api/jobs`
+10. Manual smoke test in preview against a stubbed agent URL
+
+## Next phases (after `/print` is approved)
+
+- **`/kiosk`** — redesign + `<BackToHome />` + connect indicator + queue strip (reuse same components).
+- **Payments** — Lovable Cloud + orders DB + Midtrans Snap + Lemon Squeezy + `/api/public/payment-webhook` + wire green Upload button.
+
+## Dell + printer testing — independent track (can start today)
+
+1. Dell Wyse + Linux + printer over USB, powered on.
+2. SSH → `agent/deploy/install.sh`.
+3. `agent/deploy/provision.sh mall-a-l2`.
+4. On Dell: `lpstat -p` and `lp -d <printer_name> /usr/share/cups/data/testprint`.
+5. From a laptop on booth Wi-Fi: `curl http://10.42.0.1:8080/api/health` and `curl -F 'file=@test.png' http://10.42.0.1:8080/api/print`.
+
+If those pass, hardware is done — only web UI remains.
