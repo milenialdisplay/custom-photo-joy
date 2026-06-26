@@ -162,9 +162,6 @@ function PrinterPage() {
           />
         </div>
 
-        {/* Event selector / creator */}
-        <EventPanel selected={event} onSelect={setEvent} />
-
         {/* File picker */}
         <div className="mb-6">
           <input
