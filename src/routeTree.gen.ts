@@ -14,6 +14,7 @@ import { Route as PrinterRouteImport } from './routes/printer'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as FrameRouteImport } from './routes/frame'
+import { Route as EventRouteImport } from './routes/event'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SnapRoute = SnapRouteImport.update({
@@ -41,6 +42,11 @@ const FrameRoute = FrameRouteImport.update({
   path: '/frame',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventRoute = EventRouteImport.update({
+  id: '/event',
+  path: '/event',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +55,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/event': typeof EventRoute
   '/frame': typeof FrameRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/event': typeof EventRoute
   '/frame': typeof FrameRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/event': typeof EventRoute
   '/frame': typeof FrameRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
@@ -74,14 +83,30 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/frame' | '/kiosk' | '/pricing' | '/printer' | '/snap'
+  fullPaths:
+    | '/'
+    | '/event'
+    | '/frame'
+    | '/kiosk'
+    | '/pricing'
+    | '/printer'
+    | '/snap'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/frame' | '/kiosk' | '/pricing' | '/printer' | '/snap'
-  id: '__root__' | '/' | '/frame' | '/kiosk' | '/pricing' | '/printer' | '/snap'
+  to: '/' | '/event' | '/frame' | '/kiosk' | '/pricing' | '/printer' | '/snap'
+  id:
+    | '__root__'
+    | '/'
+    | '/event'
+    | '/frame'
+    | '/kiosk'
+    | '/pricing'
+    | '/printer'
+    | '/snap'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EventRoute: typeof EventRoute
   FrameRoute: typeof FrameRoute
   KioskRoute: typeof KioskRoute
   PricingRoute: typeof PricingRoute
@@ -126,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FrameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/event': {
+      id: '/event'
+      path: '/event'
+      fullPath: '/event'
+      preLoaderRoute: typeof EventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -138,6 +170,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EventRoute: EventRoute,
   FrameRoute: FrameRoute,
   KioskRoute: KioskRoute,
   PricingRoute: PricingRoute,
@@ -147,13 +180,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

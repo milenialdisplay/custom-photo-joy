@@ -181,22 +181,21 @@ function Landing() {
 
           <div>
             <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-              // Hardware Module
+              // Event Module
             </div>
             <h2 className="mb-8 text-4xl leading-none font-bold uppercase tracking-tighter md:text-5xl">
-              Go physical.<br />
-              Big screen. Small footprint.
+              04 / Event<br />
+              Memorable Moment.
             </h2>
             <p className="mb-10 max-w-md text-base text-foreground/60">
-              Plug any tablet or large monitor into our printer module and turn your venue into a revenue generator. Guests scan a QR with their phone — the screen becomes the stage.
+              Bring your own frame, let any guest snap from their own phone, and share or print on the spot. One QR code turns the whole room into your photo crew.
             </p>
             <ul className="mb-12 space-y-3 font-mono text-xs uppercase tracking-[0.2em]">
               {[
-                "Portrait & landscape orientation",
-                "Standby attract loop (ads + intro carousel)",
-                "Phone-as-remote pairing",
-                "Wireless print server (2R / 4R / A5 / A6 / square)",
-                "Multi-device sync via realtime channel",
+                "Create or upload your own event frame",
+                "Snap from any smartphone, tablet, or laptop",
+                "Single booth device OR shared QR for every guest",
+                "Share digitally or send to the printer queue",
               ].map((line) => (
                 <li key={line} className="flex items-center gap-4">
                   <span className="size-2 bg-primary" />
@@ -204,8 +203,8 @@ function Landing() {
                 </li>
               ))}
             </ul>
-            <Link to="/kiosk">
-              <NeonButton size="lg" variant="metal">Explore Kiosk Kit</NeonButton>
+            <Link to="/event">
+              <NeonButton size="lg" variant="metal">Explore Event Mode</NeonButton>
             </Link>
           </div>
         </div>
