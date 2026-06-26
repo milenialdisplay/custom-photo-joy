@@ -1,32 +1,55 @@
 ## Goal
 
-Keep the original `03 / Print` card untouched. Rebrand the kiosk-related entry points to **04 / Event** and replace the homepage `// Hardware Module` block with a new `// Event Module` section. Both lead to a new `/event` page.
+Two clean destinations, reachable from both the homepage cards and the top nav:
+
+- **/printer** (top-nav `/printer` + homepage `03 / PRINT`) → the original printer booth, no Supabase/event UI.
+- **/event** (top-nav `/event` + homepage `// Event Module — 04 / Event`) → the Supabase event-upload tool (EventPanel + photo uploads).
 
 ## Changes
 
-### 1. New route: `src/routes/event.tsx`
-- URL: `/event`
-- `head()` with title "Event — dpotopoto.com" and matching description / og tags.
-- Hero "04 / Event — Memorable Moment" with the four value props:
-  - Create or upload your own frame for your event
-  - Use anyone's smartphone, tablet, or laptop to snap photos or upload favorites
-  - One device as a photobooth, or share a QR code so any guest can use the frame
-  - Share digitally or print — guest's choice
-- Reuses existing visual language (metal panel, neon mint, scanlines, kiosk hero image) so the page stays on-brand.
-- Includes `SiteNav`, `SiteFooter`, `BackToHome`.
-- CTAs: "Start an Event" → `/frame`, "Open Printer Booth" → `/printer`.
+### 1. `src/routes/printer.tsx` — strip event UI
+Restore to the pre-Supabase printer booth:
+- Remove imports: `EventPanel`, `uploadFilesToEvent`, `EventRow`.
+- Remove state: `event`, `uploading`.
+- Remove function: `uploadToEvent()`.
+- Remove the `<EventPanel … />` block above the file picker.
+- Remove the "Upload to event" `NeonButton`, leaving:
+  - `Pay now (soon)` (ghost, disabled)
+  - `Upload & print` (glow, primary)
+- Keep `toast` (still used by print error/success).
 
-### 2. Homepage `src/routes/index.tsx`
-- Leave the `03 / Print` Services card untouched.
-- Replace the `// Hardware Module` section with a new **`// Event Module`** block titled `04 / Event — Memorable Moment`, same metal-panel layout and image, copy reflecting the four bullets above.
-- CTA button "Explore Event Mode" → `<Link to="/event">`.
+Everything else — header, ConnectIndicator, file picker, FileRow list, totals, PrintQueueStrip, pricing hint — stays untouched.
 
-### 3. Top nav `src/components/site/SiteNav.tsx`
-- Rename the `/kiosk` link to `/event` pointing at `/event`.
+### 2. `src/routes/event.tsx` — become the Supabase event page
+Replace the current marketing landing with the working upload tool:
+- Keep `SiteNav`, `BackToHome`, `SiteFooter`, and a short branded header (`// 04 / EVENT — Memorable Moment`) with a one-line tagline.
+- Mount `<EventPanel selected={event} onSelect={setEvent} />` (state in the page).
+- Multi-file picker (`image/*,application/pdf`, max 10) with a list of chosen filenames + remove button.
+- Single primary `NeonButton` "Upload to {event.name}" calling `uploadFilesToEvent(event, files)`; disabled until an event is selected and at least one file is picked. Uses `toast` for feedback.
+- Empty-state hint when no event is selected: "Create or pick an event above to start uploading."
+- `EventPanel` already handles the Supabase-not-configured warning.
 
-### 4. Redirect old `/kiosk` URL
-- Replace `src/routes/kiosk.tsx` body with `beforeLoad: () => { throw redirect({ to: "/event" }) }` so old links still work.
+No printer, pricing, queue, or payment UI on this page.
 
-## Out of scope
-- No changes to `/printer`, `/frame`, `/snap`, agent code, or Supabase logic.
-- No visual redesign of `03 / Print`.
+### 3. `src/routes/index.tsx` — confirm card links
+Verify and adjust only if mismatched:
+- `03 / Print` Services card → `/printer`.
+- `// Event Module` block (`04 / Event — Memorable Moment`) → `/event`. Keep copy and any "Open Printer Booth" cross-link as-is.
+
+### 4. `src/components/site/SiteNav.tsx` — confirm nav links
+Verify the top nav has:
+- `/printer` → printer booth
+- `/event` → event upload tool
+
+Adjust labels/links only if they currently point elsewhere.
+
+### 5. No backend / agent / schema changes
+- `agent/*`, `src/lib/events.*`, `src/components/print/EventPanel.tsx`, Supabase clients, and `docs/BYO_SUPABASE_SETUP.md` unchanged.
+- `/kiosk` keeps its redirect to `/event`.
+
+## Files touched
+
+- `src/routes/printer.tsx` — remove EventPanel + uploadToEvent state/button
+- `src/routes/event.tsx` — replace marketing page with EventPanel + upload UI
+- `src/routes/index.tsx` — verify `03 / Print` → `/printer`, `04 / Event` → `/event`
+- `src/components/site/SiteNav.tsx` — verify `/printer` and `/event` nav links
