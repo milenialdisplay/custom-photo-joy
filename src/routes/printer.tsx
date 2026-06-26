@@ -238,6 +238,13 @@ function PrinterPage() {
             </NeonButton>
             <NeonButton
               size="md"
+              disabled={!event || uploading}
+              onClick={uploadToEvent}
+            >
+              {uploading ? "Uploading…" : event ? `Upload to ${event.name}` : "Upload to event (pick event)"}
+            </NeonButton>
+            <NeonButton
+              size="md"
               glow
               disabled={!isReady || submitting}
               onClick={uploadAndPrint}
