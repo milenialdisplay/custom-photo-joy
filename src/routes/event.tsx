@@ -1,115 +1,153 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
 import { BackToHome } from "@/components/site/BackToHome";
-import kioskUnit from "@/assets/kiosk-unit.jpg";
+import { EventPanel, uploadFilesToEvent } from "@/components/print/EventPanel";
+import type { EventRow } from "@/lib/events";
 
 export const Route = createFileRoute("/event")({
   head: () => ({
     meta: [
       { title: "Event — Memorable Moment · dpotopoto.com" },
-      { name: "description", content: "Run a memorable event: create your own frame, let guests snap from any device, share digitally or print." },
+      { name: "description", content: "Run a memorable event: pick or create an event, then upload guest photos straight to your own gallery." },
       { property: "og:title", content: "Event — Memorable Moment · dpotopoto.com" },
-      { property: "og:description", content: "One frame, any device. Share a QR — every guest becomes the photographer." },
+      { property: "og:description", content: "One frame, any device. Upload guest photos to your own event gallery." },
     ],
   }),
   component: EventPage,
 });
 
-const bullets = [
-  {
-    n: "01",
-    title: "Bring your own frame",
-    body: "Create or upload your custom frame for the event — branded, themed, or fully bespoke.",
-  },
-  {
-    n: "02",
-    title: "Any device, any guest",
-    body: "Smartphone, tablet, or laptop — anyone can snap a photo or upload their favorite shot.",
-  },
-  {
-    n: "03",
-    title: "One booth, or many",
-    body: "Provide a single device as a photobooth, or share a QR code so every guest uses your frame from their own phone.",
-  },
-  {
-    n: "04",
-    title: "Share or print",
-    body: "Guests pick their outcome — instant digital share, or send straight to the printer queue.",
-  },
-];
+const MAX_FILES = 10;
 
 function EventPage() {
+  const [event, setEvent] = useState<EventRow | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? []);
+    if (!picked.length) return;
+    const remaining = MAX_FILES - files.length;
+    const accepted = picked.slice(0, Math.max(0, remaining));
+    if (picked.length > accepted.length) {
+      toast.warning(`Max ${MAX_FILES} files per upload`);
+    }
+    setFiles((prev) => [...prev, ...accepted]);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  function removeAt(i: number) {
+    setFiles((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  async function handleUpload() {
+    if (!event || !files.length) return;
+    setUploading(true);
+    try {
+      const ok = await uploadFilesToEvent(event, files);
+      if (ok > 0) toast.success(`${ok} photo(s) uploaded to ${event.name}`);
+      if (ok === files.length) setFiles([]);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteNav />
-      <div className="mx-auto max-w-7xl px-6 pt-4">
+      <main className="mx-auto max-w-3xl px-6 py-12">
         <BackToHome />
-      </div>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden px-6 pt-12 pb-24">
-        <div className="absolute inset-0 grid-noise opacity-30" aria-hidden />
-        <div className="mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-2">
-          <div>
-            <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-              // 04 / Event
+        {/* Header */}
+        <div className="mt-4 mb-8 border-b border-primary/15 pb-6">
+          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
+            // 04 / EVENT — Memorable Moment
+          </div>
+          <h1 className="mt-3 text-3xl font-bold uppercase tracking-tighter md:text-4xl">
+            Your event, your gallery.
+          </h1>
+          <p className="mt-3 max-w-xl text-sm text-foreground/60">
+            Create an event, share the QR with guests, and upload photos straight into your own gallery bucket.
+          </p>
+        </div>
+
+        {/* Event picker / creator */}
+        <EventPanel selected={event} onSelect={setEvent} />
+
+        {/* File picker */}
+        <div className="mb-6">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            onChange={onPick}
+            className="hidden"
+            id="event-file-picker"
+          />
+          <label
+            htmlFor="event-file-picker"
+            className="block cursor-pointer border-2 border-dashed border-primary/30 bg-primary/5 px-6 py-10 text-center font-mono text-xs uppercase tracking-[0.2em] text-primary transition-colors hover:border-primary hover:bg-primary/10"
+          >
+            + Select photos to upload
+            <div className="mt-2 text-[10px] text-foreground/40">
+              Up to {MAX_FILES} files · JPG, PNG, PDF
             </div>
-            <h1 className="mb-8 text-5xl font-bold uppercase tracking-tighter md:text-7xl">
-              Memorable<br />Moment.
-            </h1>
-            <p className="mb-10 max-w-md text-base text-foreground/60">
-              Turn any gathering into a shared photo experience. Your frame, your guests' devices, your choice to share or print.
+          </label>
+        </div>
+
+        {/* File list */}
+        {files.length > 0 && (
+          <div className="mb-6 border border-primary/15 bg-background/40 p-4">
+            <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-primary/60">
+              // {files.length} file{files.length === 1 ? "" : "s"}
+            </div>
+            <ul className="space-y-2">
+              {files.map((f, i) => (
+                <li
+                  key={`${f.name}-${i}`}
+                  className="flex items-center justify-between gap-3 border border-primary/10 bg-background px-3 py-2 font-mono text-xs"
+                >
+                  <span className="truncate text-foreground/80">{f.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeAt(i)}
+                    className="text-foreground/40 transition-colors hover:text-primary"
+                    aria-label={`Remove ${f.name}`}
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Action */}
+        <div className="mb-10">
+          <NeonButton
+            size="md"
+            glow
+            disabled={!event || !files.length || uploading}
+            onClick={handleUpload}
+          >
+            {uploading
+              ? "Uploading…"
+              : event
+                ? `Upload to ${event.name}`
+                : "Pick an event above to upload"}
+          </NeonButton>
+          {!event && files.length === 0 && (
+            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-foreground/40">
+              Create or pick an event above to start uploading.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/frame"><NeonButton size="lg" glow>Start an Event</NeonButton></Link>
-              <Link to="/printer"><NeonButton size="lg" variant="ghost">Open Printer Booth</NeonButton></Link>
-            </div>
-          </div>
-
-          <div className="metal-panel relative border border-black/60 p-3">
-            <span className="rivet absolute top-2 left-2 size-2 rounded-full" />
-            <span className="rivet absolute top-2 right-2 size-2 rounded-full" />
-            <span className="rivet absolute bottom-2 left-2 size-2 rounded-full" />
-            <span className="rivet absolute bottom-2 right-2 size-2 rounded-full" />
-            <div className="relative aspect-square overflow-hidden bg-black">
-              <img
-                src={kioskUnit}
-                alt="Event booth with neon-mint frame"
-                width={1024}
-                height={1024}
-                className="size-full object-cover"
-              />
-              <div className="scanlines pointer-events-none absolute inset-0 opacity-15" />
-            </div>
-          </div>
+          )}
         </div>
-      </section>
-
-      {/* How it runs */}
-      <section className="border-y border-primary/10 bg-muted/30 px-6 py-24">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-16">
-            <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
-              // How_It_Runs
-            </div>
-            <h2 className="mt-4 text-4xl font-bold uppercase tracking-tighter md:text-5xl">
-              Four moves. One memorable night.
-            </h2>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {bullets.map((s) => (
-              <div key={s.n} className="border border-primary/10 bg-background/60 p-6">
-                <div className="mb-4 font-mono text-3xl font-bold text-primary">{s.n}</div>
-                <h3 className="mb-3 text-lg font-bold uppercase tracking-tight">{s.title}</h3>
-                <p className="text-sm text-foreground/60">{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
+      </main>
       <SiteFooter />
     </div>
   );
