@@ -1,3 +1,4 @@
+// ============= Full file contents =============
 // @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
 // or the app will break with duplicate plugins:
 //   - tanstackStart, viteReact, tailwindcss, tsConfigPaths, cloudflare (build-only),
@@ -6,10 +7,20 @@
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-// Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-// @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
+// Inject BYO Supabase public credentials at build time so the browser bundle
+// can construct a Supabase client without exposing secrets through VITE_ env.
+// Only URL + publishable (anon) key are inlined — both are safe in browser code.
+// The service-role key stays server-only via process.env in server functions.
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
+  },
+  vite: {
+    define: {
+      __BYO_SUPABASE_URL__: JSON.stringify(process.env.BYO_SUPABASE_URL ?? ""),
+      __BYO_SUPABASE_PUBLISHABLE_KEY__: JSON.stringify(
+        process.env.BYO_SUPABASE_PUBLISHABLE_KEY ?? "",
+      ),
+    },
   },
 });
