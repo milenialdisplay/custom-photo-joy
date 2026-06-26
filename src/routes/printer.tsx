@@ -81,7 +81,21 @@ function PrinterPage() {
   const [connectState, setConnectState] = useState<ConnectState>("checking");
   const [files, setFiles] = useState<SelectedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [event, setEvent] = useState<EventRow | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  async function uploadToEvent() {
+    if (!event || !files.length) return;
+    setUploading(true);
+    try {
+      const ok = await uploadFilesToEvent(event, files.map((f) => f.file));
+      if (ok > 0) toast.success(`${ok} photo(s) uploaded to ${event.name}`);
+      if (ok === files.length) setFiles([]);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const isReady = connectState === "ready";
   const total = files.reduce((sum, f) => sum + priceFor(f.size, cfg.prices_idr), 0);
@@ -163,6 +177,9 @@ function PrinterPage() {
             onStateChange={setConnectState}
           />
         </div>
+
+        {/* Event selector / creator */}
+        <EventPanel selected={event} onSelect={setEvent} />
 
         {/* File picker */}
         <div className="mb-6">
