@@ -6,6 +6,8 @@ import { NeonButton } from "@/components/site/NeonButton";
 import { ConnectIndicator, type ConnectState } from "@/components/print/ConnectIndicator";
 import { FileRow } from "@/components/print/FileRow";
 import { PrintQueueStrip } from "@/components/print/PrintQueueStrip";
+import { EventPanel, uploadFilesToEvent } from "@/components/print/EventPanel";
+import type { EventRow } from "@/lib/events";
 import { useBoothConfig } from "@/hooks/useBoothConfig";
 import { formatIDR, priceFor, type PaperSize } from "@/lib/pricing";
 import { toast } from "sonner";
