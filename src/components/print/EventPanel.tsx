@@ -98,7 +98,7 @@ export function EventPanel({ selected, onSelect }: Props) {
           className="flex-1 border border-primary/20 bg-background px-3 py-2 font-mono text-sm text-foreground placeholder:text-foreground/30"
           maxLength={80}
         />
-        <NeonButton size="sm" onClick={handleCreate} disabled={busy || !name.trim()}>
+        <NeonButton size="md" onClick={handleCreate} disabled={busy || !name.trim()}>
           {busy ? "…" : "+ Create"}
         </NeonButton>
       </div>
