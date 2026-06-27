@@ -16,6 +16,10 @@ import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as FrameRouteImport } from './routes/frame'
 import { Route as EventRouteImport } from './routes/event'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ESlugRouteImport } from './routes/e.$slug'
+import { Route as EventSlugFrameRouteImport } from './routes/event.$slug.frame'
+import { Route as EventSlugDashboardRouteImport } from './routes/event.$slug.dashboard'
+import { Route as ESlugCaptureRouteImport } from './routes/e.$slug.capture'
 
 const SnapRoute = SnapRouteImport.update({
   id: '/snap',
@@ -52,34 +56,66 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ESlugRoute = ESlugRouteImport.update({
+  id: '/e/$slug',
+  path: '/e/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventSlugFrameRoute = EventSlugFrameRouteImport.update({
+  id: '/$slug/frame',
+  path: '/$slug/frame',
+  getParentRoute: () => EventRoute,
+} as any)
+const EventSlugDashboardRoute = EventSlugDashboardRouteImport.update({
+  id: '/$slug/dashboard',
+  path: '/$slug/dashboard',
+  getParentRoute: () => EventRoute,
+} as any)
+const ESlugCaptureRoute = ESlugCaptureRouteImport.update({
+  id: '/capture',
+  path: '/capture',
+  getParentRoute: () => ESlugRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/event': typeof EventRoute
+  '/event': typeof EventRouteWithChildren
   '/frame': typeof FrameRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
   '/printer': typeof PrinterRoute
   '/snap': typeof SnapRoute
+  '/e/$slug': typeof ESlugRouteWithChildren
+  '/e/$slug/capture': typeof ESlugCaptureRoute
+  '/event/$slug/dashboard': typeof EventSlugDashboardRoute
+  '/event/$slug/frame': typeof EventSlugFrameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/event': typeof EventRoute
+  '/event': typeof EventRouteWithChildren
   '/frame': typeof FrameRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
   '/printer': typeof PrinterRoute
   '/snap': typeof SnapRoute
+  '/e/$slug': typeof ESlugRouteWithChildren
+  '/e/$slug/capture': typeof ESlugCaptureRoute
+  '/event/$slug/dashboard': typeof EventSlugDashboardRoute
+  '/event/$slug/frame': typeof EventSlugFrameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/event': typeof EventRoute
+  '/event': typeof EventRouteWithChildren
   '/frame': typeof FrameRoute
   '/kiosk': typeof KioskRoute
   '/pricing': typeof PricingRoute
   '/printer': typeof PrinterRoute
   '/snap': typeof SnapRoute
+  '/e/$slug': typeof ESlugRouteWithChildren
+  '/e/$slug/capture': typeof ESlugCaptureRoute
+  '/event/$slug/dashboard': typeof EventSlugDashboardRoute
+  '/event/$slug/frame': typeof EventSlugFrameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,8 +127,23 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/printer'
     | '/snap'
+    | '/e/$slug'
+    | '/e/$slug/capture'
+    | '/event/$slug/dashboard'
+    | '/event/$slug/frame'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/event' | '/frame' | '/kiosk' | '/pricing' | '/printer' | '/snap'
+  to:
+    | '/'
+    | '/event'
+    | '/frame'
+    | '/kiosk'
+    | '/pricing'
+    | '/printer'
+    | '/snap'
+    | '/e/$slug'
+    | '/e/$slug/capture'
+    | '/event/$slug/dashboard'
+    | '/event/$slug/frame'
   id:
     | '__root__'
     | '/'
@@ -102,16 +153,21 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/printer'
     | '/snap'
+    | '/e/$slug'
+    | '/e/$slug/capture'
+    | '/event/$slug/dashboard'
+    | '/event/$slug/frame'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  EventRoute: typeof EventRoute
+  EventRoute: typeof EventRouteWithChildren
   FrameRoute: typeof FrameRoute
   KioskRoute: typeof KioskRoute
   PricingRoute: typeof PricingRoute
   PrinterRoute: typeof PrinterRoute
   SnapRoute: typeof SnapRoute
+  ESlugRoute: typeof ESlugRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -165,17 +221,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/e/$slug': {
+      id: '/e/$slug'
+      path: '/e/$slug'
+      fullPath: '/e/$slug'
+      preLoaderRoute: typeof ESlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/event/$slug/frame': {
+      id: '/event/$slug/frame'
+      path: '/$slug/frame'
+      fullPath: '/event/$slug/frame'
+      preLoaderRoute: typeof EventSlugFrameRouteImport
+      parentRoute: typeof EventRoute
+    }
+    '/event/$slug/dashboard': {
+      id: '/event/$slug/dashboard'
+      path: '/$slug/dashboard'
+      fullPath: '/event/$slug/dashboard'
+      preLoaderRoute: typeof EventSlugDashboardRouteImport
+      parentRoute: typeof EventRoute
+    }
+    '/e/$slug/capture': {
+      id: '/e/$slug/capture'
+      path: '/capture'
+      fullPath: '/e/$slug/capture'
+      preLoaderRoute: typeof ESlugCaptureRouteImport
+      parentRoute: typeof ESlugRoute
+    }
   }
 }
 
+interface EventRouteChildren {
+  EventSlugDashboardRoute: typeof EventSlugDashboardRoute
+  EventSlugFrameRoute: typeof EventSlugFrameRoute
+}
+
+const EventRouteChildren: EventRouteChildren = {
+  EventSlugDashboardRoute: EventSlugDashboardRoute,
+  EventSlugFrameRoute: EventSlugFrameRoute,
+}
+
+const EventRouteWithChildren = EventRoute._addFileChildren(EventRouteChildren)
+
+interface ESlugRouteChildren {
+  ESlugCaptureRoute: typeof ESlugCaptureRoute
+}
+
+const ESlugRouteChildren: ESlugRouteChildren = {
+  ESlugCaptureRoute: ESlugCaptureRoute,
+}
+
+const ESlugRouteWithChildren = ESlugRoute._addFileChildren(ESlugRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  EventRoute: EventRoute,
+  EventRoute: EventRouteWithChildren,
   FrameRoute: FrameRoute,
   KioskRoute: KioskRoute,
   PricingRoute: PricingRoute,
   PrinterRoute: PrinterRoute,
   SnapRoute: SnapRoute,
+  ESlugRoute: ESlugRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
