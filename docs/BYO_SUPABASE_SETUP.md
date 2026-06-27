@@ -74,3 +74,46 @@ After running the SQL above:
 - Bucket names with dots are valid in Supabase Storage but unusual; if you prefer `sarah-wedding-dpotopoto`, edit the format string in `src/lib/events.functions.ts`.
 - Buckets are created **public-read** so gallery URLs work without signing. Switch to private if you want signed URLs.
 - Per-photo size limit: 25 MB (also in `events.functions.ts`).
+
+---
+
+## 4. Event-system upgrade (run once)
+
+Adds columns + policies + RPC for the wizard, frames, PIN gate, and per-event print credits.
+
+```sql
+-- Add columns (idempotent guard via IF NOT EXISTS)
+alter table public.events add column if not exists event_date date;
+alter table public.events add column if not exists guest_tier text check (guest_tier in ('t100','t100plus'));
+alter table public.events add column if not exists package text check (package in ('A','B'));
+alter table public.events add column if not exists price_idr int;
+alter table public.events add column if not exists print_credits int default 0;
+alter table public.events add column if not exists print_credits_remaining int default 0;
+alter table public.events add column if not exists paid_at timestamptz;
+alter table public.events add column if not exists frame_url text;
+alter table public.events add column if not exists frame_slot jsonb;
+alter table public.events add column if not exists access_pin text;
+
+-- Update grants (additive)
+grant update on public.events to anon, authenticated;
+
+-- Print credit RPC
+create or replace function public.consume_print_credit(_event_id uuid)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare ok boolean;
+begin
+  update public.events
+    set print_credits_remaining = print_credits_remaining - 1
+    where id = _event_id and print_credits_remaining > 0
+  returning true into ok;
+  return coalesce(ok, false);
+end$$;
+grant execute on function public.consume_print_credit(uuid) to anon, authenticated;
+```
+
+After running:
+- `/event` wizard creates paid events with PIN + bucket
+- `/event/$slug/frame` saves frame + slot to the event row
+- `/event/$slug/dashboard` shows live counters
+- `/e/$slug` is the PIN-gated public album
+- `/e/$slug/capture?booth=1` enables in-venue print on a guest device
