@@ -474,32 +474,6 @@ function StudioPage() {
             </div>
           </Panel>
 
-          <Panel title="02 · Frame" mobileActive={activePanel === "frame"}>
-            <div className="grid grid-cols-3 gap-2">
-              {framesForRatio.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setFrameId(f.id)}
-                  className={`group relative overflow-hidden rounded border text-[9px] font-mono uppercase tracking-wider transition-all ${
-                    frameId === f.id ? "border-primary neon-glow" : "border-primary/15 hover:border-primary/40"
-                  }`}
-                  style={{ aspectRatio: `${f.ratio.split(":")[0]} / ${f.ratio.split(":")[1]}` }}
-                  title={f.name}
-                >
-                  <img src={f.src} alt={f.name} className="absolute inset-0 size-full bg-muted object-cover" />
-                  <span className="absolute bottom-0 left-0 right-0 bg-background/80 px-1 py-0.5 text-primary/80 truncate">
-                    {f.kind === "custom" ? "CUSTOM" : f.ratio}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <Slider label={`Hue ${frameHue}°`} min={0} max={360} value={frameHue} onChange={setFrameHue} />
-            <Slider label={`Saturation ${frameSat}%`} min={0} max={100} value={frameSat} onChange={setFrameSat} />
-            <label className="block cursor-pointer rounded border border-dashed border-primary/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70 hover:bg-primary/5">
-              <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)} />
-              Upload_Custom_Frame
-            </label>
-          </Panel>
 
           <Panel title="03 · Pattern" mobileActive={activePanel === "pattern"}>
             <div className="grid grid-cols-4 gap-2">
