@@ -273,13 +273,7 @@ function StudioPage() {
     logoUrl,
     logoRect,
     logoOpacity,
-    caption,
-    captionFont,
-    captionSize,
-    captionColor,
-    captionRect,
-    captionBg,
-    captionBgOpacity,
+    captions,
     trial,
   };
 
