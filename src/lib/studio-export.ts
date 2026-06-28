@@ -37,14 +37,8 @@ export interface ExportState {
   logoUrl: string | null;
   logoRect: Rect;
   logoOpacity: number;
-  // caption
-  caption: string;
-  captionFont: string;
-  captionSize: number; // relative to canvas width 0..1
-  captionColor: string;
-  captionRect: Rect;
-  captionBg: string;
-  captionBgOpacity: number;
+  // captions (up to N)
+  captions: ExportCaption[];
   // trial
   trial: boolean;
 }
