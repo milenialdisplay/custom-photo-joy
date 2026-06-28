@@ -807,19 +807,21 @@ function Slider({
 }
 
 function PhotoSlot({
-  index, slot, stageRef, minW, minH, onRectChange, onPick, onClear, onCamera,
+  index, slot, stageRef, minW, minH, previewMode = false, onRectChange, onPick, onClear, onCamera,
 }: {
   index: number;
   slot: SlotState;
   stageRef: React.RefObject<HTMLDivElement | null>;
   minW: number;
   minH: number;
+  previewMode?: boolean;
   onRectChange: (r: Rect) => void;
   onPick: (f: File | null) => void;
   onClear: () => void;
   onCamera: () => void;
 }) {
   const ctl = useRectController(stageRef, slot.rect, onRectChange, { minW, minH, snap: 0.008 });
+  const interactive = !previewMode;
   const edgeHandle = (edge: "n" | "s" | "e" | "w", cls: string, label: string) => (
     <span
       onPointerDown={ctl.onPointerDown(edge)}
@@ -832,29 +834,31 @@ function PhotoSlot({
   );
   return (
     <div
-      className="absolute touch-none border-2 border-dashed border-primary/70"
+      className={`absolute touch-none ${interactive ? "border-2 border-dashed border-primary/70" : ""}`}
       style={{
         left: `${slot.rect.x * 100}%`,
         top: `${slot.rect.y * 100}%`,
         width: `${slot.rect.w * 100}%`,
         height: `${slot.rect.h * 100}%`,
       }}
-      onPointerDown={ctl.onPointerDown("move")}
-      onPointerMove={ctl.onPointerMove}
-      onPointerUp={ctl.onPointerUp}
+      onPointerDown={interactive ? ctl.onPointerDown("move") : undefined}
+      onPointerMove={interactive ? ctl.onPointerMove : undefined}
+      onPointerUp={interactive ? ctl.onPointerUp : undefined}
     >
       {slot.photoUrl ? (
         <>
           <img src={slot.photoUrl} alt="" draggable={false} className="pointer-events-none absolute inset-0 size-full object-cover" />
-          <button
-            onClick={(e) => { e.stopPropagation(); onClear(); }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="absolute top-1 right-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] uppercase text-destructive hover:bg-destructive hover:text-destructive-foreground"
-          >
-            ×
-          </button>
+          {interactive && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onClear(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute top-1 right-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] uppercase text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
+              ×
+            </button>
+          )}
         </>
-      ) : (
+      ) : interactive ? (
         <div
           className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card/40 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60"
           onPointerDown={(e) => e.stopPropagation()}
@@ -877,24 +881,24 @@ function PhotoSlot({
             </button>
           </div>
         </div>
+      ) : null}
+      {interactive && (
+        <>
+          <span className="absolute top-1 left-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] text-primary/80">
+            {index + 1}
+          </span>
+          {edgeHandle("n", "left-1/2 -translate-x-1/2 -top-2.5 h-5 px-2 cursor-ns-resize rounded-sm", "↕ DRAG")}
+          {edgeHandle("s", "left-1/2 -translate-x-1/2 -bottom-2.5 h-5 px-2 cursor-ns-resize rounded-sm", "↕ DRAG")}
+          {edgeHandle("w", "top-1/2 -translate-y-1/2 -left-2.5 w-5 py-2 cursor-ew-resize rounded-sm [writing-mode:vertical-rl]", "↔ DRAG")}
+          {edgeHandle("e", "top-1/2 -translate-y-1/2 -right-2.5 w-5 py-2 cursor-ew-resize rounded-sm [writing-mode:vertical-rl]", "↔ DRAG")}
+          <span
+            onPointerDown={ctl.onPointerDown("se")}
+            onPointerMove={ctl.onPointerMove}
+            onPointerUp={ctl.onPointerUp}
+            className="absolute z-10 -bottom-1.5 -right-1.5 size-4 cursor-nwse-resize rounded-sm bg-primary shadow-[0_0_8px_currentColor]"
+          />
+        </>
       )}
-      <span className="absolute top-1 left-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] text-primary/80">
-        {index + 1}
-      </span>
-
-      {/* edge resize handles with visible DRAG labels */}
-      {edgeHandle("n", "left-1/2 -translate-x-1/2 -top-2.5 h-5 px-2 cursor-ns-resize rounded-sm", "↕ DRAG")}
-      {edgeHandle("s", "left-1/2 -translate-x-1/2 -bottom-2.5 h-5 px-2 cursor-ns-resize rounded-sm", "↕ DRAG")}
-      {edgeHandle("w", "top-1/2 -translate-y-1/2 -left-2.5 w-5 py-2 cursor-ew-resize rounded-sm [writing-mode:vertical-rl]", "↔ DRAG")}
-      {edgeHandle("e", "top-1/2 -translate-y-1/2 -right-2.5 w-5 py-2 cursor-ew-resize rounded-sm [writing-mode:vertical-rl]", "↔ DRAG")}
-
-      {/* corner resize */}
-      <span
-        onPointerDown={ctl.onPointerDown("se")}
-        onPointerMove={ctl.onPointerMove}
-        onPointerUp={ctl.onPointerUp}
-        className="absolute z-10 -bottom-1.5 -right-1.5 size-4 cursor-nwse-resize rounded-sm bg-primary shadow-[0_0_8px_currentColor]"
-      />
     </div>
   );
 }
