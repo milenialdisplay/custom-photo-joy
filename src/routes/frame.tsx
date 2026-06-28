@@ -933,6 +933,9 @@ function FrameStrip({
               </button>
             )}
           </div>
+          <p className="font-mono text-[10px] leading-relaxed text-primary/60">
+            Custom frame sets the ratio — your canvas will match the uploaded frame's shape.
+          </p>
         </div>
 
         {/* RIGHT: tint swatches + hue/sat sliders */}
