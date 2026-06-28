@@ -3,6 +3,18 @@ import brandWhiteUrl from "@/assets/brand/dpotopoto-white.png";
 import type { Frame } from "@/lib/frames";
 import type { Rect } from "@/components/studio/useDraggable";
 
+export interface ExportCaption {
+  id: string;
+  text: string;
+  font: string;
+  color: string;
+  sizePx: number;
+  rect: Rect;
+  bgColor: string;
+  bgOpacity: number;
+  bgRect: Rect;
+}
+
 export interface SlotState {
   rect: Rect;
   photoUrl: string | null;
