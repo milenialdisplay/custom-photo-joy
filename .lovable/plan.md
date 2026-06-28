@@ -1,22 +1,23 @@
 ## Goal
-Replace the dark "DPOTOPOTO.COM — TRIAL" band at the bottom of LIVE_PREVIEW with the same `BrandLogo` wordmark used in the top-left of the page (Fredoka font), wrapped in a tight black pill so it stays readable over white/light frames.
+1. Move the bottom-left `dpotopoto.com` brand pill to sit ~5–7px from the left and bottom edges (both LIVE_PREVIEW and exported JPEG).
+2. Add a short info note explaining that uploading a custom frame snaps the canvas to the frame's own ratio (square / portrait / landscape), overriding the ratio chosen earlier.
+
+## Answer to the user's question
+Yes — the custom frame is already drawn to fill the whole canvas (no per-frame drag handles in either the preview or `studio-export.ts`). On upload, `onPickCustomFrame` snaps `ratio` to the uploaded image's aspect (`snapToRatio`) and the frame image stretches to the full preview/export. So no drag tool is needed for the custom frame — the ratio change you're seeing is intentional, and the new hint below will make that clear.
 
 ## Changes
 
-### `src/routes/frame.tsx` (preview stage, lines ~391–400)
-- Delete the `{trial && (...)}` watermark band entirely.
-- Replace the existing bottom-left `BrandLogo` block with a single branding mark:
-  - Position: same bottom-left corner (`absolute bottom-[5%] left-[4%] z-10 pointer-events-none`).
-  - Wrap `<BrandLogo variant="dark" className="text-[10px] md:text-xs" />` in a `<span>` with `bg-black/90 px-2 py-1 rounded-sm inline-flex items-center` so the black box hugs the text (padding only slightly larger than the glyphs).
-  - `variant="dark"` keeps the text white on the black pill.
-- Smaller size than the page header logo (header uses `text-xl`+); preview uses ~`text-[10px] md:text-xs` so it reads as a branding mark, not a title.
+### `src/routes/frame.tsx`
+- Brand pill position (bottom-left of LIVE_PREVIEW): replace the current percentage offsets (`bottom-[5%] left-[4%]`) with fixed pixel offsets `bottom-[6px] left-[6px]` so it hugs the edge regardless of canvas size.
+- Add a one-line hint in the **02 FRAME** panel, just under the "+ upload" custom-frame control:
+  - Copy: `"Custom frame sets the ratio — your canvas will match the uploaded frame's shape."`
+  - Style: same muted mono caption style used elsewhere in that panel (`font-mono text-[10px] text-primary/60`).
 
-### `src/lib/studio-export.ts` (export canvas parity)
-- Remove the trial watermark band branch (`if (state.trial) { ... }`) so exports match the preview.
-- Keep the existing brand mark draw, but draw a black rounded rectangle behind it sized to the brand image dimensions plus ~6% horizontal / ~30% vertical padding, then draw the brand image on top at full opacity. Use a smaller `brandWidth` (≈12% of canvas width instead of 20%) to match the smaller on-screen size.
-- Leave `state.trial` in the type for now (no behavioral effect) to avoid touching all call sites; mark it as deprecated in a comment.
+### `src/lib/studio-export.ts`
+- Brand pill draw (currently `boxX = width * 0.04`, `boxY = height - … - height * 0.04`): change to a fixed pixel inset. Use `EDGE_PX = 6` so `boxX = EDGE_PX` and `boxY = height - boxH - EDGE_PX`. Keeps parity with the on-screen 6px inset across both A4/A5 export sizes.
+- No changes to pill sizing, padding, font, or color.
 
 ## Out of scope
+- No changes to ratio-snap logic, frame upload flow, or export pipeline beyond pill positioning.
+- No drag handles for custom frames (intentionally not added — frame already fills the page).
 - No changes to the top-left header logo.
-- No changes to the `trial` toggle UI in the export panel — it simply becomes a no-op visual; can be removed in a follow-up if desired.
-- No changes to event/composite renderer (`event-render.ts`).
