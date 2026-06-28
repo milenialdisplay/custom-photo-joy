@@ -884,7 +884,7 @@ function FrameStrip({
         </div>
 
         {/* RIGHT: tint swatches + hue/sat sliders */}
-        <div className="space-y-3">
+        <div className="order-1 md:order-2 space-y-3">
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary/50">tint</div>
           <div className="grid grid-cols-7 gap-2">
             {TINT_PRESETS.map((t) => (
