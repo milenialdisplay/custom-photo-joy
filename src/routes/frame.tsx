@@ -719,16 +719,68 @@ function Panel({
   title,
   children,
   mobileActive = true,
+  headerRight,
 }: {
   title: string;
   children: React.ReactNode;
   mobileActive?: boolean;
+  headerRight?: React.ReactNode;
 }) {
   return (
     <section className={`space-y-3 rounded border border-primary/15 bg-card/40 p-4 ${mobileActive ? "block" : "hidden lg:block"}`}>
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">{title}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">{title}</div>
+        {headerRight}
+      </div>
       {children}
     </section>
+  );
+}
+
+function CaptionLayer({
+  caption,
+  stageRef,
+  previewMode,
+  onChange,
+  canvasW,
+}: {
+  caption: Caption;
+  stageRef: React.RefObject<HTMLDivElement | null>;
+  previewMode: boolean;
+  onChange: (patch: Partial<Caption>) => void;
+  canvasW: number;
+}) {
+  const bgCtl = useRectController(stageRef, caption.bgRect, (r) => onChange({ bgRect: r }), { snap: 0.008 });
+  const txtCtl = useRectController(stageRef, caption.rect, (r) => onChange({ rect: r }), { snap: 0.008 });
+  // font size in preview: stage uses container queries (100cqw = stage width)
+  const fontSize = `calc(${caption.sizePx / canvasW} * 100cqw)`;
+  return (
+    <>
+      {/* bg rect (independent) */}
+      <DraggableBox rect={caption.bgRect} ctl={bgCtl} accent previewMode={previewMode}>
+        <div
+          className="absolute inset-0"
+          style={{ background: caption.bgColor, opacity: caption.bgOpacity }}
+        />
+      </DraggableBox>
+      {/* text rect (independent) */}
+      {caption.text.trim() && (
+        <DraggableBox rect={caption.rect} ctl={txtCtl} previewMode={previewMode}>
+          <div
+            className="flex size-full items-center justify-center px-1 text-center"
+            style={{
+              color: caption.color,
+              fontFamily: `${caption.font}, sans-serif`,
+              fontWeight: 700,
+              fontSize,
+              lineHeight: 1.05,
+            }}
+          >
+            {caption.text}
+          </div>
+        </DraggableBox>
+      )}
+    </>
   );
 }
 
