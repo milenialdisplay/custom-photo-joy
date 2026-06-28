@@ -1,4 +1,4 @@
-import { PRESET_FRAMES, WATERMARK_HEIGHT_RATIO } from "@/lib/frames";
+import { PRESET_FRAMES } from "@/lib/frames";
 import brandWhiteUrl from "@/assets/brand/dpotopoto-white.png";
 import type { Frame } from "@/lib/frames";
 import type { Rect } from "@/components/studio/useDraggable";
