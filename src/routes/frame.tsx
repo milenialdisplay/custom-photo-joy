@@ -301,13 +301,20 @@ function StudioPage() {
                 {/* Frame */}
                 {activeFrame && (
                   <>
-                    <img src={activeFrame.src} alt="" className="pointer-events-none absolute inset-0 size-full" draggable={false} />
+                    <img
+                      src={activeFrame.src}
+                      alt=""
+                      className="pointer-events-none absolute inset-0 size-full"
+                      draggable={false}
+                      style={activeFrame.kind === "custom" ? { opacity: customFrameOpacity } : undefined}
+                    />
                     {frameSat > 0 && (
                       <div
                         className="pointer-events-none absolute inset-0"
                         style={{
                           background: tintCss,
                           mixBlendMode: "multiply",
+                          opacity: activeFrame.kind === "custom" ? customFrameOpacity : 1,
                         }}
                       />
                     )}
