@@ -904,25 +904,39 @@ function FrameStrip({
             </button>
           ))}
 
-          <label
-            className="group relative flex shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-primary/40 bg-background/60 text-primary/70 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
-            style={{ width: 88, aspectRatio: "1 / 1" }}
-            title="Upload your own frame (PNG with transparency recommended)"
-          >
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="hidden"
-              onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)}
-            />
-            <span className="text-2xl leading-none">+</span>
-            <span className="px-1 text-center font-mono text-[8px] uppercase tracking-wider">
-              {hasCustom ? "Replace" : "Upload"}
-            </span>
-            <span className="px-1 text-center font-mono text-[7px] uppercase tracking-wider text-primary/40">
-              PNG · custom
-            </span>
-          </label>
+          <div className="flex shrink-0 items-stretch gap-2">
+            <label
+              className="group relative flex shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-primary/40 bg-background/60 text-primary/70 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
+              style={{ width: 88, aspectRatio: "1 / 1" }}
+              title="Upload your own frame (PNG with transparency recommended)"
+            >
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)}
+              />
+              <span className="text-2xl leading-none">+</span>
+              <span className="px-1 text-center font-mono text-[8px] uppercase tracking-wider">
+                Upload
+              </span>
+              <span className="px-1 text-center font-mono text-[7px] uppercase tracking-wider text-primary/40">
+                PNG · custom
+              </span>
+            </label>
+            {hasCustom && (
+              <button
+                type="button"
+                onClick={onRemoveCustomFrame}
+                className="flex shrink-0 flex-col items-center justify-center gap-1 rounded border-2 border-destructive/40 bg-background/60 px-2 font-mono text-[9px] uppercase tracking-wider text-destructive/80 transition-all hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+                style={{ width: 88, aspectRatio: "1 / 1" }}
+                title="Remove uploaded custom frame"
+              >
+                <span className="text-xl leading-none">×</span>
+                <span>Remove</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* RIGHT: tint swatches + hue/sat sliders */}
