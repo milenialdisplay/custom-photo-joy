@@ -14,6 +14,7 @@ export interface ExportState {
   customFrame: Frame | null;
   frameHue: number;
   frameSat: number; // 0..100
+  customFrameOpacity?: number; // 0..1, only applied when active frame is custom
   // pattern
   patternId: string | null;
   patternOpacity: number; // 0..1
