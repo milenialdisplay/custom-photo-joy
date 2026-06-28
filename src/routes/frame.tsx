@@ -502,7 +502,7 @@ function StudioPage() {
           <Panel title="04 · Logo" mobileActive={activePanel === "logo"}>
             <label className="block cursor-pointer rounded border border-dashed border-primary/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70 hover:bg-primary/5">
               <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickLogo(e.target.files?.[0] ?? null)} />
-              {logoUrl ? "Replace_Logo" : "Upload_Logo"}
+              Upload_Logo
             </label>
             {logoUrl && (
               <>
