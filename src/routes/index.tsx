@@ -172,10 +172,7 @@ function Landing() {
             </div>
             <div className="mt-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-primary/50">
               <span>UNIT_KX-01</span>
-              <span className="flex items-center gap-2">
-                <span className="size-1.5 animate-blink rounded-full bg-primary" />
-                Online
-              </span>
+              <span>Online</span>
             </div>
           </div>
 
