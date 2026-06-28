@@ -389,7 +389,7 @@ function StudioPage() {
                 )}
 
                 {/* branding mark — tight black pill keeps wordmark legible over light frames */}
-                <div className="pointer-events-none absolute bottom-[4%] left-[4%] z-10">
+                <div className="pointer-events-none absolute bottom-[6px] left-[6px] z-10">
                   <span className="inline-flex items-center rounded-sm bg-black/90 px-2 py-1">
                     <BrandLogo variant="dark" className="text-[10px] md:text-xs" />
                   </span>
