@@ -384,34 +384,21 @@ function StudioPage() {
                   />
                 ))}
 
-                {/* caption */}
-                {caption.trim() && (
-                  <DraggableBox rect={captionRect} ctl={capCtl} accent>
-                    <div
-                      className="absolute inset-0 flex items-center justify-center text-center"
-                      style={{
-                        background: captionBg,
-                        opacity: captionBgOpacity,
-                      }}
-                    />
-                    <div
-                      className="relative flex size-full items-center justify-center px-2 text-center"
-                      style={{
-                        color: captionColor,
-                        fontFamily: `${captionFont}, sans-serif`,
-                        fontWeight: 700,
-                        fontSize: `calc(${captionSize} * 100cqw)`,
-                        lineHeight: 1.05,
-                      }}
-                    >
-                      {caption}
-                    </div>
-                  </DraggableBox>
-                )}
+                {/* captions */}
+                {captions.map((cap) => (
+                  <CaptionLayer
+                    key={cap.id}
+                    caption={cap}
+                    stageRef={stageRef}
+                    previewMode={previewMode}
+                    onChange={(patch) => updateCaption(cap.id, patch)}
+                    canvasW={preset.w}
+                  />
+                ))}
 
                 {/* logo */}
                 {logoUrl && (
-                  <DraggableBox rect={logoRect} ctl={logoCtl}>
+                  <DraggableBox rect={logoRect} ctl={logoCtl} previewMode={previewMode}>
                     <img
                       src={logoUrl}
                       alt=""
