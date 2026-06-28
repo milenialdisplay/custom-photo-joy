@@ -198,8 +198,17 @@ function StudioPage() {
       setCustomFrame(cf);
       setFrameId(cf.id);
       setRatio(snapped);
+      setCustomFrameOpacity(1);
     };
     img.src = url;
+  };
+
+  const onRemoveCustomFrame = () => {
+    if (customFrame?.kind === "custom") URL.revokeObjectURL(customFrame.src);
+    setCustomFrame(null);
+    const preset = PRESET_FRAMES.find((f) => f.ratio === ratio) ?? PRESET_FRAMES[0];
+    setFrameId(preset.id);
+    setCustomFrameOpacity(1);
   };
 
   const resetLayout = () => {
