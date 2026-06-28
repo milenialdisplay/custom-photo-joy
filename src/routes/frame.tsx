@@ -92,14 +92,27 @@ function StudioPage() {
   const [logoRect, setLogoRect] = useState<Rect>(DEFAULT_LOGO);
   const [logoOpacity, setLogoOpacity] = useState(1);
 
-  // caption
-  const [caption, setCaption] = useState("");
-  const [captionFont, setCaptionFont] = useState("Space Grotesk");
-  const [captionSize, setCaptionSize] = useState(0.045);
-  const [captionColor, setCaptionColor] = useState("#F0F0FF");
-  const [captionRect, setCaptionRect] = useState<Rect>(DEFAULT_CAPTION);
-  const [captionBg, setCaptionBg] = useState("#0A0A0F");
-  const [captionBgOpacity, setCaptionBgOpacity] = useState(0.6);
+  // caption (array of up to 3)
+  const [captions, setCaptions] = useState<Caption[]>(() => [makeCaption()]);
+  const updateCaption = (id: string, patch: Partial<Caption>) =>
+    setCaptions((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  const removeCaption = (id: string) =>
+    setCaptions((prev) => (prev.length <= 1 ? prev : prev.filter((c) => c.id !== id)));
+  const addCaption = () =>
+    setCaptions((prev) => {
+      if (prev.length >= MAX_CAPTIONS) return prev;
+      // place new caption above existing ones
+      const topY = prev.reduce((min, c) => Math.min(min, c.rect.y, c.bgRect.y), 1);
+      const newY = Math.max(0.02, topY - 0.1);
+      const cap = makeCaption({
+        rect: { x: 0.1, y: newY, w: 0.8, h: 0.08 },
+        bgRect: { x: 0.1, y: newY, w: 0.8, h: 0.08 },
+      });
+      return [cap, ...prev];
+    });
+
+  // preview mode (hide editing affordances)
+  const [previewMode, setPreviewMode] = useState(false);
 
   // export
   const [presetId, setPresetId] = useState<OutputPresetId>("web-1x1");
