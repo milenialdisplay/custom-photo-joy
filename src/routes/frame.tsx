@@ -420,7 +420,20 @@ function StudioPage() {
 
             {/* Quick controls — directly below LIVE_PREVIEW */}
             <div className="mt-4">
-              <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary/55">quick_controls</div>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/55">quick_controls</span>
+                <button
+                  onClick={() => setPreviewMode((v) => !v)}
+                  className={`rounded border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] transition-all ${
+                    previewMode
+                      ? "border-primary bg-primary/30 text-primary neon-glow"
+                      : "border-primary/30 text-primary/70 hover:bg-primary/10"
+                  }`}
+                  title="Toggle clean preview (hide edit handles)"
+                >
+                  {previewMode ? "● preview" : "preview"}
+                </button>
+              </div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 {[
                   ["layout", "01 layout"],
@@ -442,6 +455,7 @@ function StudioPage() {
                 ))}
               </div>
             </div>
+
 
 
             {/* Frame strip — gated behind 02 FRAME button */}
