@@ -1,50 +1,15 @@
-## Goal
+## Problem
+On phones the Frame Studio layout puts the HUE / Saturation sliders far below the live preview, so users lose visual context while adjusting tint. Also the slot-hint row feels too high in the page.
 
-Rework the `/frame` page (`src/routes/frame.tsx`) layout so the **quick controls row** sits directly under `LIVE_PREVIEW`, and the frame picker UI only appears when the user clicks **02 FRAME**. Preserve a working backup of the current page before making changes.
+## Changes
 
-## 0. Backup current working version
+1. **Reorder FrameStrip on mobile**
+   - Inside `FrameStrip`, wrap the left column (frame tiles + upload) and right column (tints + sliders) in a single grid that uses `order-2` on the left column and `order-1` on the right column for small screens.
+   - On `md` and up keep the existing left/right order.
+   - This places the 7 tint swatches, Hue slider, and Saturation slider directly above the frame tiles on phones.
 
-- Copy `src/routes/frame.tsx` → `src/routes/frame.original.tsx.bak` (the `.bak` extension keeps it out of the router, identical to how `index.original.tsx.bak` is preserved).
-- If the revision misbehaves, restoring is a single-file copy back over `frame.tsx`.
+2. **Move slot-hint row above the footer**
+   - Relocate the existing `<div>` containing `drag slots · corner = resize · click slot to upload` + `Reset_Layout` from its current position (just under quick controls) to immediately before `<SiteFooter />`.
+   - Keep the same styling so it sits as a full-width hint bar just above the footer on all viewports.
 
-## 1. Promote quick controls under LIVE_PREVIEW
-
-- Move the existing `quick_controls` grid (currently `lg:hidden`, lines ~411–433) to render **immediately below** the preview stage, before any frame UI.
-- Remove the `lg:hidden` gate so all 6 buttons (`01 LAYOUT`, `02 FRAME`, `03 PATTERN`, `04 LOGO`, `05 CAPTION`, `06 EXPORT`) show on desktop too.
-- Rename state `activeMobilePanel` → `activePanel` since it now drives both viewports.
-
-## 2. Move "drag slots / Reset_Layout" hint row
-
-- Move the row at lines 401–409 (`drag slots · corner = resize · click slot to upload` + `Reset_Layout`) so it renders **right after** the quick-controls grid.
-
-## 3. Gate `FrameStrip` behind "02 FRAME"
-
-- Wrap `<FrameStrip />` in `activePanel === "frame" && (...)` so it only appears when the user taps **02 FRAME**, positioned below the quick controls + reset row.
-
-## 4. Restructure `FrameStrip` into a two-column layout
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│ frames · tap to preview · upload your own   1 frame · 7 tints│
-├──────────────────────────┬─────────────────────────────────┤
-│ [white ratio frame tile] │ [7 tint swatches grid]          │
-│ [+ Upload tile]          │ [Hue slider]                    │
-│                          │ [Saturation slider]             │
-└──────────────────────────┴─────────────────────────────────┘
-```
-
-- Replace the current vertical stack (frames row → tint row) with `grid grid-cols-1 md:grid-cols-2 gap-4`.
-- Left column: existing frame tile(s) + `+ Upload` tile.
-- Right column: 7 tint swatches in `grid grid-cols-7 gap-2`, then `<Slider>` for Hue (0–360) and Saturation (0–100).
-- Extend `FrameStrip` props with `onHueChange` / `onSatChange`; pass `setFrameHue` / `setFrameSat` from `StudioPage`. Reuse the existing `Slider` component (move its declaration above `FrameStrip` if scoping requires it).
-
-## 5. Remove the now-duplicate "02 · Frame" aside panel
-
-- Delete the entire right-side `<Panel title="02 · Frame" ...>` block (lines 470–495), including its `Upload_Custom_Frame` button and Hue/Saturation sliders.
-- Other panels (`01 Ratio & Layout`, `03 Pattern`, `04 Logo`, `05 Caption`, `06 Export`) and their `activePanel` keys stay unchanged.
-
-## 6. Preserve behavior
-
-- All state (`frameId`, `frameHue`, `frameSat`, `customFrame`, etc.) and handlers unchanged.
-- `activePanel` defaults to `"layout"` so the FrameStrip stays hidden on initial load.
-- No export pipeline, asset, or other route changes.
+No state, handlers, or export logic changes.
