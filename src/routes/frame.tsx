@@ -691,17 +691,19 @@ function StudioPage() {
         </aside>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 pb-4 md:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
-          <span>drag slots · corner = resize · click slot to upload</span>
-          <button
-            onClick={resetLayout}
-            className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
-          >
-            Reset_Layout
-          </button>
+      {!previewMode && (
+        <div className="mx-auto max-w-7xl px-4 pb-4 md:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
+            <span>drag slots · corner = resize · click slot to upload</span>
+            <button
+              onClick={resetLayout}
+              className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
+            >
+              Reset_Layout
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <SiteFooter />
 
