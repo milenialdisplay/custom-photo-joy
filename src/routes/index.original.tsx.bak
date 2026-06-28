@@ -3,6 +3,7 @@ import { SiteNav } from "@/components/site/SiteNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { NeonButton } from "@/components/site/NeonButton";
 import heroStrip from "@/assets/hero-strip.jpg";
+import servicePhoto from "@/assets/service-photo.jpg";
 import serviceFrame from "@/assets/service-frame.jpg";
 import servicePrint from "@/assets/service-print.jpg";
 import kioskUnit from "@/assets/kiosk-unit.jpg";
@@ -22,17 +23,20 @@ function Landing() {
         <div className="mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-2">
           <div className="relative animate-flicker">
             <div className="mb-5 font-mono text-xs uppercase tracking-[0.3em] text-primary">
-              // Personal Photobooth
+              // System Initialized
             </div>
             <h1 className="mb-8 text-5xl leading-[1.02] font-bold tracking-tighter text-balance md:text-7xl lg:text-[5.5rem]">
-              MAKE YOUR PHONE A <span className="text-primary">PRIVATE</span> PHOTOBOOTH.
+              YOUR PHONE IS A <span className="text-primary">NEON</span> BOOTH.
             </h1>
             <p className="mb-10 max-w-md font-mono text-base text-foreground/60">
-              Turn any screen into a professional capture station. Instant prints, branded frames, pure arcade energy — for any personal, business and social activities, schools, parties, weddings, and brand events.
+              Turn any screen into a professional capture station. Instant prints, branded frames, pure arcade energy — for parties, weddings, and brand events.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link to="/frame">
-                <NeonButton size="lg" glow>Start Free Demo</NeonButton>
+              <Link to="/snap">
+                <NeonButton size="lg" glow>Start Free Trial</NeonButton>
+              </Link>
+              <Link to="/snap">
+                <NeonButton size="lg" variant="ghost">Try a Demo Booth</NeonButton>
               </Link>
             </div>
             <div className="mt-10 flex items-center gap-6 font-mono text-[10px] uppercase tracking-[0.25em] text-primary/40">
@@ -89,28 +93,28 @@ function Landing() {
           <div className="grid gap-6 md:grid-cols-3">
             {[
               {
-                tag: "01 / Frame",
-                title: "Design Booth",
+                tag: "01 / Capture",
+                title: "Photo Booth",
+                desc: "Single shots or classic 4-frame strips. Front, back, webcam, DSLR — any camera works.",
+                img: servicePhoto,
+                alt: "Printed photo strips on a dark surface",
+                href: "/snap" as const,
+              },
+              {
+                tag: "02 / Edit",
+                title: "Frame Booth",
                 desc: "Drop in your logo, slide the hue, drag the caption. Frames adapt in real time.",
                 img: serviceFrame,
                 alt: "Frame editor UI with neon sliders",
                 href: "/frame" as const,
               },
               {
-                tag: "02 / Printer",
-                title: "Printing Booth",
-                desc: "Print up to 5R at any printing booth. Pay per print. No subscription.",
+                tag: "03 / Print",
+                title: "Printer Booth",
+                desc: "Print 2R, 4R, A5, A6 or square at any kiosk. Pay per print. No subscription.",
                 img: servicePrint,
                 alt: "Thermal printer dispensing a fresh print",
                 href: "/printer" as const,
-              },
-              {
-                tag: "03 / Event",
-                title: "Memorable Moment",
-                desc: "Create your own frame, let any guest snap from their own phone, and share or print on the spot. One QR code turns the whole room into your photo crew.",
-                img: kioskUnit,
-                alt: "Industrial photo booth kiosk with neon mint bezel at an event",
-                href: "/event" as const,
               },
             ].map((s) => {
               const card = (
@@ -144,11 +148,12 @@ function Landing() {
         </div>
       </section>
 
-      {/* Kiosk image + feature bullets */}
+      {/* Kiosk pitch — industrial / metal */}
       <section className="relative overflow-hidden px-6 py-32">
         <div className="mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-2">
           <div className="relative">
             <div className="metal-panel relative border border-black/60 p-3">
+              {/* Rivets */}
               <span className="rivet absolute top-2 left-2 size-2 rounded-full" />
               <span className="rivet absolute top-2 right-2 size-2 rounded-full" />
               <span className="rivet absolute bottom-2 left-2 size-2 rounded-full" />
@@ -168,7 +173,17 @@ function Landing() {
           </div>
 
           <div>
-            <ul className="space-y-3 font-mono text-xs uppercase tracking-[0.2em]">
+            <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.3em] text-primary">
+              // Event Module
+            </div>
+            <h2 className="mb-8 text-4xl leading-none font-bold uppercase tracking-tighter md:text-5xl">
+              04 / Event<br />
+              Memorable Moment.
+            </h2>
+            <p className="mb-10 max-w-md text-base text-foreground/60">
+              Bring your own frame, let any guest snap from their own phone, and share or print on the spot. One QR code turns the whole room into your photo crew.
+            </p>
+            <ul className="mb-12 space-y-3 font-mono text-xs uppercase tracking-[0.2em]">
               {[
                 "Create or upload your own event frame",
                 "Snap from any smartphone, tablet, or laptop",
@@ -184,6 +199,9 @@ function Landing() {
           </div>
         </div>
       </section>
+
+      {/* Pricing teaser */}
+      <PricingGrid />
 
       <SiteFooter />
     </div>
@@ -205,6 +223,7 @@ export function PricingGrid() {
         </div>
 
         <div className="grid gap-px border border-primary/20 bg-primary/20 md:grid-cols-3">
+          {/* Trial */}
           <PlanCard
             tag="Trial_Node"
             name="Free Trial"
@@ -219,6 +238,8 @@ export function PricingGrid() {
             ]}
             cta="Initialize"
           />
+
+          {/* Pro */}
           <PlanCard
             highlight
             tag="Main_Process"
@@ -234,6 +255,8 @@ export function PricingGrid() {
             ]}
             cta="Upgrade"
           />
+
+          {/* Business */}
           <PlanCard
             tag="Enterprise_Shell"
             name="Business"
@@ -249,6 +272,10 @@ export function PricingGrid() {
             cta="Contact Sales"
           />
         </div>
+
+        <p className="mt-8 max-w-2xl font-mono text-[11px] text-foreground/40">
+          Printer Booth and Kiosk Mode are pay-per-use and not included in the free trial.
+        </p>
       </div>
     </section>
   );
