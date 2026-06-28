@@ -408,16 +408,6 @@ function StudioPage() {
               </div>
             </div>
 
-            {/* Slot hint + reset */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
-              <span>drag slots · corner = resize · click slot to upload</span>
-              <button
-                onClick={resetLayout}
-                className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
-              >
-                Reset_Layout
-              </button>
-            </div>
 
             {/* Frame strip — gated behind 02 FRAME button */}
             {activePanel === "frame" && (
