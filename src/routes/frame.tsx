@@ -567,49 +567,91 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="05 · Caption" mobileActive={activePanel === "caption"}>
-            <input
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="// type your caption"
-              className="w-full rounded border border-primary/20 bg-background px-3 py-2 font-mono text-sm placeholder:text-primary/30 focus:border-primary focus:outline-none"
-            />
-            {caption && (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  <select
-                    value={captionFont}
-                    onChange={(e) => setCaptionFont(e.target.value)}
-                    className="rounded border border-primary/20 bg-background px-2 py-1.5 font-mono text-[11px]"
-                  >
-                    {["Space Grotesk", "JetBrains Mono", "Georgia", "Impact", "Courier New"].map((f) => (
-                      <option key={f}>{f}</option>
-                    ))}
-                  </select>
+          <Panel
+            title="05 · Caption"
+            mobileActive={activePanel === "caption"}
+            headerRight={
+              <button
+                onClick={addCaption}
+                disabled={captions.length >= MAX_CAPTIONS}
+                className="rounded border border-primary/30 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-primary/80 hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                + add caption {captions.length}/{MAX_CAPTIONS}
+              </button>
+            }
+          >
+            {captions.map((cap, idx) => (
+              <div key={cap.id} className="space-y-2 rounded border border-primary/15 bg-background/40 p-2">
+                <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.25em] text-primary/60">
+                  <span>caption_{idx + 1}</span>
+                  {captions.length > 1 && (
+                    <button
+                      onClick={() => removeCaption(cap.id)}
+                      className="rounded px-1 text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
+                      title="remove this caption"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                {/* Size slider — first, closest to LIVE_PREVIEW on mobile */}
+                <Slider
+                  label={`Size ${cap.sizePx}px`}
+                  min={10}
+                  max={350}
+                  step={1}
+                  value={cap.sizePx}
+                  onChange={(v) => updateCaption(cap.id, { sizePx: v })}
+                />
+                {/* bg color + fill slider on one row */}
+                <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={captionColor}
-                    onChange={(e) => setCaptionColor(e.target.value)}
-                    className="h-full w-full cursor-pointer rounded border border-primary/20 bg-background"
+                    value={cap.bgColor}
+                    onChange={(e) => updateCaption(cap.id, { bgColor: e.target.value })}
+                    className="h-8 w-10 shrink-0 cursor-pointer rounded border border-primary/20 bg-background"
+                    title="caption background"
+                  />
+                  <div className="flex-1">
+                    <Slider
+                      label={`Fill ${(cap.bgOpacity * 100).toFixed(0)}%`}
+                      min={0}
+                      max={100}
+                      value={cap.bgOpacity * 100}
+                      onChange={(v) => updateCaption(cap.id, { bgOpacity: v / 100 })}
+                    />
+                  </div>
+                </div>
+                {/* text input + font color (small square) */}
+                <div className="flex items-center gap-2">
+                  <input
+                    value={cap.text}
+                    onChange={(e) => updateCaption(cap.id, { text: e.target.value })}
+                    placeholder="// type your caption"
+                    className="flex-1 rounded border border-primary/20 bg-background px-2 py-1.5 font-mono text-sm placeholder:text-primary/30 focus:border-primary focus:outline-none"
+                  />
+                  <input
+                    type="color"
+                    value={cap.color}
+                    onChange={(e) => updateCaption(cap.id, { color: e.target.value })}
+                    className="h-8 w-8 shrink-0 cursor-pointer rounded border border-primary/20 bg-background"
+                    title="font color"
                   />
                 </div>
-                <Slider label={`Size ${(captionSize * 100).toFixed(1)}%`} min={1} max={15} step={0.1} value={captionSize * 100} onChange={(v) => setCaptionSize(v / 100)} />
-                <div className="space-y-2 rounded border border-primary/15 p-2">
-                  <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary/60">caption_background</div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={captionBg}
-                      onChange={(e) => setCaptionBg(e.target.value)}
-                      className="h-8 w-12 cursor-pointer rounded border border-primary/20 bg-background"
-                    />
-                    <span className="font-mono text-[10px] text-primary/60">drag box + drag corner on preview</span>
-                  </div>
-                  <Slider label={`Fill ${(captionBgOpacity * 100).toFixed(0)}%`} min={0} max={100} value={captionBgOpacity * 100} onChange={(v) => setCaptionBgOpacity(v / 100)} />
-                </div>
-              </>
-            )}
+                {/* font select (narrower) */}
+                <select
+                  value={cap.font}
+                  onChange={(e) => updateCaption(cap.id, { font: e.target.value })}
+                  className="w-3/5 rounded border border-primary/20 bg-background px-2 py-1.5 font-mono text-[11px]"
+                >
+                  {["Space Grotesk", "JetBrains Mono", "Georgia", "Impact", "Courier New"].map((f) => (
+                    <option key={f}>{f}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
           </Panel>
+
 
           <Panel title="06 · Export" mobileActive={activePanel === "export"}>
             <select
