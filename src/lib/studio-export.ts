@@ -171,10 +171,11 @@ export async function renderToCanvas(
   const brandHeight = (brand.height / brand.width) * brandWidth;
   const padX = brandWidth * 0.08;
   const padY = brandHeight * 0.3;
-  const boxX = width * 0.04;
-  const boxY = height - brandHeight - padY * 2 - height * 0.04;
+  const EDGE_PX = 6;
   const boxW = brandWidth + padX * 2;
   const boxH = brandHeight + padY * 2;
+  const boxX = EDGE_PX;
+  const boxY = height - boxH - EDGE_PX;
   ctx.save();
   ctx.fillStyle = "rgba(0,0,0,0.9)";
   const r = Math.min(boxW, boxH) * 0.15;
