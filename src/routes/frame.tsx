@@ -830,7 +830,7 @@ function FrameStrip({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* LEFT: frame tiles + upload */}
-        <div className="flex flex-wrap gap-2">
+        <div className="order-2 md:order-1 flex flex-wrap gap-2">
           {frames.map((f) => (
             <button
               key={f.id}
