@@ -170,9 +170,6 @@ function Landing() {
                 <div className="scanlines pointer-events-none absolute inset-0 opacity-15" aria-hidden />
               </div>
             </div>
-            <div className="mt-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-primary/50">
-              <span>Online</span>
-            </div>
           </div>
 
           <div>
