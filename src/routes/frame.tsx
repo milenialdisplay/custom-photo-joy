@@ -941,6 +941,17 @@ function FrameStrip({
 
         {/* RIGHT: tint swatches + hue/sat sliders */}
         <div className="order-1 md:order-2 space-y-3">
+          {isCustomActive && (
+            <div className="rounded border border-primary/30 bg-primary/5 p-2">
+              <Slider
+                label={`Custom Frame Opacity ${Math.round(customOpacity * 100)}%`}
+                min={0}
+                max={100}
+                value={Math.round(customOpacity * 100)}
+                onChange={(v) => onCustomOpacityChange(v / 100)}
+              />
+            </div>
+          )}
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary/50">tint</div>
           <div className="grid grid-cols-7 gap-2">
             {TINT_PRESETS.map((t) => (
