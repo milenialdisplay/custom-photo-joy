@@ -53,6 +53,7 @@ function StudioPage() {
   const [frameId, setFrameId] = useState<string>("white-1x1");
   const [frameHue, setFrameHue] = useState(0);
   const [frameSat, setFrameSat] = useState(0);
+  const [customFrameOpacity, setCustomFrameOpacity] = useState(1);
 
   // pattern
   const [patternId, setPatternId] = useState<string | null>(null);
@@ -197,8 +198,17 @@ function StudioPage() {
       setCustomFrame(cf);
       setFrameId(cf.id);
       setRatio(snapped);
+      setCustomFrameOpacity(1);
     };
     img.src = url;
+  };
+
+  const onRemoveCustomFrame = () => {
+    if (customFrame?.kind === "custom") URL.revokeObjectURL(customFrame.src);
+    setCustomFrame(null);
+    const preset = PRESET_FRAMES.find((f) => f.ratio === ratio) ?? PRESET_FRAMES[0];
+    setFrameId(preset.id);
+    setCustomFrameOpacity(1);
   };
 
   const resetLayout = () => {
@@ -215,6 +225,7 @@ function StudioPage() {
     customFrame,
     frameHue,
     frameSat,
+    customFrameOpacity,
     patternId,
     patternOpacity,
     patternTile,
@@ -290,13 +301,20 @@ function StudioPage() {
                 {/* Frame */}
                 {activeFrame && (
                   <>
-                    <img src={activeFrame.src} alt="" className="pointer-events-none absolute inset-0 size-full" draggable={false} />
+                    <img
+                      src={activeFrame.src}
+                      alt=""
+                      className="pointer-events-none absolute inset-0 size-full"
+                      draggable={false}
+                      style={activeFrame.kind === "custom" ? { opacity: customFrameOpacity } : undefined}
+                    />
                     {frameSat > 0 && (
                       <div
                         className="pointer-events-none absolute inset-0"
                         style={{
                           background: tintCss,
                           mixBlendMode: "multiply",
+                          opacity: activeFrame.kind === "custom" ? customFrameOpacity : 1,
                         }}
                       />
                     )}
@@ -416,7 +434,11 @@ function StudioPage() {
                 activeFrameId={frameId}
                 onPickFrame={setFrameId}
                 onPickCustomFrame={onPickCustomFrame}
+                onRemoveCustomFrame={onRemoveCustomFrame}
                 hasCustom={!!customFrame && customFrame.ratio === ratio}
+                isCustomActive={!!customFrame && customFrame.id === frameId}
+                customOpacity={customFrameOpacity}
+                onCustomOpacityChange={setCustomFrameOpacity}
                 hue={frameHue}
                 sat={frameSat}
                 onPickTint={(h, s) => {
@@ -809,7 +831,11 @@ function FrameStrip({
   activeFrameId,
   onPickFrame,
   onPickCustomFrame,
+  onRemoveCustomFrame,
   hasCustom,
+  isCustomActive,
+  customOpacity,
+  onCustomOpacityChange,
   hue,
   sat,
   onPickTint,
@@ -820,7 +846,11 @@ function FrameStrip({
   activeFrameId: string;
   onPickFrame: (id: string) => void;
   onPickCustomFrame: (f: File | null) => void;
+  onRemoveCustomFrame: () => void;
   hasCustom: boolean;
+  isCustomActive: boolean;
+  customOpacity: number;
+  onCustomOpacityChange: (v: number) => void;
   hue: number;
   sat: number;
   onPickTint: (hue: number, sat: number) => void;
@@ -874,29 +904,54 @@ function FrameStrip({
             </button>
           ))}
 
-          <label
-            className="group relative flex shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-primary/40 bg-background/60 text-primary/70 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
-            style={{ width: 88, aspectRatio: "1 / 1" }}
-            title="Upload your own frame (PNG with transparency recommended)"
-          >
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="hidden"
-              onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)}
-            />
-            <span className="text-2xl leading-none">+</span>
-            <span className="px-1 text-center font-mono text-[8px] uppercase tracking-wider">
-              {hasCustom ? "Replace" : "Upload"}
-            </span>
-            <span className="px-1 text-center font-mono text-[7px] uppercase tracking-wider text-primary/40">
-              PNG · custom
-            </span>
-          </label>
+          <div className="flex shrink-0 items-stretch gap-2">
+            <label
+              className="group relative flex shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-primary/40 bg-background/60 text-primary/70 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
+              style={{ width: 88, aspectRatio: "1 / 1" }}
+              title="Upload your own frame (PNG with transparency recommended)"
+            >
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)}
+              />
+              <span className="text-2xl leading-none">+</span>
+              <span className="px-1 text-center font-mono text-[8px] uppercase tracking-wider">
+                Upload
+              </span>
+              <span className="px-1 text-center font-mono text-[7px] uppercase tracking-wider text-primary/40">
+                PNG · custom
+              </span>
+            </label>
+            {hasCustom && (
+              <button
+                type="button"
+                onClick={onRemoveCustomFrame}
+                className="flex shrink-0 flex-col items-center justify-center gap-1 rounded border-2 border-destructive/40 bg-background/60 px-2 font-mono text-[9px] uppercase tracking-wider text-destructive/80 transition-all hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+                style={{ width: 88, aspectRatio: "1 / 1" }}
+                title="Remove uploaded custom frame"
+              >
+                <span className="text-xl leading-none">×</span>
+                <span>Remove</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* RIGHT: tint swatches + hue/sat sliders */}
         <div className="order-1 md:order-2 space-y-3">
+          {isCustomActive && (
+            <div className="rounded border border-primary/30 bg-primary/5 p-2">
+              <Slider
+                label={`Custom Frame Opacity ${Math.round(customOpacity * 100)}%`}
+                min={0}
+                max={100}
+                value={Math.round(customOpacity * 100)}
+                onChange={(v) => onCustomOpacityChange(v / 100)}
+              />
+            </div>
+          )}
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary/50">tint</div>
           <div className="grid grid-cols-7 gap-2">
             {TINT_PRESETS.map((t) => (
