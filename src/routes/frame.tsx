@@ -216,6 +216,7 @@ function StudioPage() {
     customFrame,
     frameHue,
     frameSat,
+    customFrameOpacity,
     patternId,
     patternOpacity,
     patternTile,
