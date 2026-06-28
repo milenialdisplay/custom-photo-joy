@@ -294,7 +294,7 @@ function StudioPage() {
   const patternSrc = patternId ? PATTERN_LOOKUP(patternId) : undefined;
 
   const logoCtl = useRectController(stageRef, logoRect, setLogoRect, { snap: 0.008 });
-  const capCtl = useRectController(stageRef, captionRect, setCaptionRect, { snap: 0.008 });
+  
 
   const framesForRatio = useMemo(
     () => [...PRESET_FRAMES.filter((f) => f.ratio === ratio), ...(customFrame && customFrame.ratio === ratio ? [customFrame] : [])],
