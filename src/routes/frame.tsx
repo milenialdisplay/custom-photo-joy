@@ -811,6 +811,8 @@ function FrameStrip({
   hue,
   sat,
   onPickTint,
+  onHueChange,
+  onSatChange,
 }: {
   frames: Frame[];
   activeFrameId: string;
@@ -820,12 +822,14 @@ function FrameStrip({
   hue: number;
   sat: number;
   onPickTint: (hue: number, sat: number) => void;
+  onHueChange: (v: number) => void;
+  onSatChange: (v: number) => void;
 }) {
   const activeTintId = TINT_PRESETS.find((t) => t.hue === hue && t.sat === sat)?.id;
 
   return (
     <div className="mt-4 rounded border border-primary/20 bg-background/40 p-3">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/70">
           frames · tap to preview · upload your own
         </div>
@@ -834,94 +838,98 @@ function FrameStrip({
         </div>
       </div>
 
-      {/* Frames row */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {frames.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => onPickFrame(f.id)}
-            className={`group relative shrink-0 overflow-hidden rounded border-2 transition-all ${
-              activeFrameId === f.id
-                ? "border-primary neon-glow scale-105"
-                : "border-primary/15 hover:border-primary/50"
-            }`}
-            style={{
-              width: 88,
-              aspectRatio: `${f.ratio.split(":")[0]} / ${f.ratio.split(":")[1]}`,
-            }}
-            title={f.name}
-          >
-            <img src={f.src} alt={f.name} className="absolute inset-0 size-full bg-muted object-cover" />
-            {sat > 0 && (
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background: `hsl(${hue}, ${sat}%, 50%)`,
-                  mixBlendMode: "multiply",
-                }}
-              />
-            )}
-            <span className="absolute inset-x-0 bottom-0 bg-background/85 px-1 py-0.5 text-center font-mono text-[8px] uppercase tracking-wider text-primary/80">
-              {f.kind === "custom" ? "CUSTOM" : f.ratio}
-            </span>
-          </button>
-        ))}
-
-        {/* Upload custom frame tile */}
-        <label
-          className="group relative flex shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-primary/40 bg-background/60 text-primary/70 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
-          style={{ width: 88, aspectRatio: "1 / 1" }}
-          title="Upload your own frame (PNG with transparency recommended)"
-        >
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="hidden"
-            onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)}
-          />
-          <span className="text-2xl leading-none">+</span>
-          <span className="px-1 text-center font-mono text-[8px] uppercase tracking-wider">
-            {hasCustom ? "Replace" : "Upload"}
-          </span>
-          <span className="px-1 text-center font-mono text-[7px] uppercase tracking-wider text-primary/40">
-            PNG · custom
-          </span>
-        </label>
-      </div>
-
-      {/* Tint presets */}
-      <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
-        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-primary/50">
-          tint:
-        </span>
-        {TINT_PRESETS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => onPickTint(t.hue, t.sat)}
-            className={`group flex shrink-0 flex-col items-center gap-1 transition-transform hover:scale-110 ${
-              activeTintId === t.id ? "scale-110" : ""
-            }`}
-            title={t.label}
-          >
-            <span
-              className={`block size-7 rounded-full border-2 transition-all ${
-                activeTintId === t.id ? "border-primary neon-glow" : "border-primary/20"
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* LEFT: frame tiles + upload */}
+        <div className="flex flex-wrap gap-2">
+          {frames.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => onPickFrame(f.id)}
+              className={`group relative shrink-0 overflow-hidden rounded border-2 transition-all ${
+                activeFrameId === f.id
+                  ? "border-primary neon-glow scale-105"
+                  : "border-primary/15 hover:border-primary/50"
               }`}
               style={{
-                background: t.id === "none" ? "transparent" : t.swatch,
-                backgroundImage:
-                  t.id === "none"
-                    ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%)"
-                    : undefined,
-                backgroundSize: t.id === "none" ? "8px 8px" : undefined,
+                width: 88,
+                aspectRatio: `${f.ratio.split(":")[0]} / ${f.ratio.split(":")[1]}`,
               }}
+              title={f.name}
+            >
+              <img src={f.src} alt={f.name} className="absolute inset-0 size-full bg-muted object-cover" />
+              {sat > 0 && (
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background: `hsl(${hue}, ${sat}%, 50%)`,
+                    mixBlendMode: "multiply",
+                  }}
+                />
+              )}
+              <span className="absolute inset-x-0 bottom-0 bg-background/85 px-1 py-0.5 text-center font-mono text-[8px] uppercase tracking-wider text-primary/80">
+                {f.kind === "custom" ? "CUSTOM" : f.ratio}
+              </span>
+            </button>
+          ))}
+
+          <label
+            className="group relative flex shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-primary/40 bg-background/60 text-primary/70 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
+            style={{ width: 88, aspectRatio: "1 / 1" }}
+            title="Upload your own frame (PNG with transparency recommended)"
+          >
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)}
             />
-            <span className="font-mono text-[8px] uppercase tracking-wider text-primary/60">
-              {t.label}
+            <span className="text-2xl leading-none">+</span>
+            <span className="px-1 text-center font-mono text-[8px] uppercase tracking-wider">
+              {hasCustom ? "Replace" : "Upload"}
             </span>
-          </button>
-        ))}
+            <span className="px-1 text-center font-mono text-[7px] uppercase tracking-wider text-primary/40">
+              PNG · custom
+            </span>
+          </label>
+        </div>
+
+        {/* RIGHT: tint swatches + hue/sat sliders */}
+        <div className="space-y-3">
+          <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary/50">tint</div>
+          <div className="grid grid-cols-7 gap-2">
+            {TINT_PRESETS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onPickTint(t.hue, t.sat)}
+                className={`flex flex-col items-center gap-1 transition-transform hover:scale-110 ${
+                  activeTintId === t.id ? "scale-110" : ""
+                }`}
+                title={t.label}
+              >
+                <span
+                  className={`block size-7 rounded-full border-2 transition-all ${
+                    activeTintId === t.id ? "border-primary neon-glow" : "border-primary/20"
+                  }`}
+                  style={{
+                    background: t.id === "none" ? "transparent" : t.swatch,
+                    backgroundImage:
+                      t.id === "none"
+                        ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%)"
+                        : undefined,
+                    backgroundSize: t.id === "none" ? "8px 8px" : undefined,
+                  }}
+                />
+                <span className="font-mono text-[8px] uppercase tracking-wider text-primary/60">
+                  {t.label}
+                </span>
+              </button>
+            ))}
+          </div>
+          <Slider label={`Hue ${hue}°`} min={0} max={360} value={hue} onChange={onHueChange} />
+          <Slider label={`Saturation ${sat}%`} min={0} max={100} value={sat} onChange={onSatChange} />
+        </div>
       </div>
     </div>
   );
 }
+
