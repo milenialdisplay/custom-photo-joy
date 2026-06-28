@@ -831,7 +831,11 @@ function FrameStrip({
   activeFrameId,
   onPickFrame,
   onPickCustomFrame,
+  onRemoveCustomFrame,
   hasCustom,
+  isCustomActive,
+  customOpacity,
+  onCustomOpacityChange,
   hue,
   sat,
   onPickTint,
@@ -842,7 +846,11 @@ function FrameStrip({
   activeFrameId: string;
   onPickFrame: (id: string) => void;
   onPickCustomFrame: (f: File | null) => void;
+  onRemoveCustomFrame: () => void;
   hasCustom: boolean;
+  isCustomActive: boolean;
+  customOpacity: number;
+  onCustomOpacityChange: (v: number) => void;
   hue: number;
   sat: number;
   onPickTint: (hue: number, sat: number) => void;
