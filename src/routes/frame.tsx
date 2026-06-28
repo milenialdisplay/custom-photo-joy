@@ -35,7 +35,34 @@ export const Route = createFileRoute("/frame")({
 });
 
 const DEFAULT_LOGO: Rect = { x: 0.04, y: 0.04, w: 0.18, h: 0.1 };
-const DEFAULT_CAPTION: Rect = { x: 0.1, y: 0.82, w: 0.8, h: 0.1 };
+const DEFAULT_CAPTION_RECT: Rect = { x: 0.1, y: 0.82, w: 0.8, h: 0.08 };
+const DEFAULT_CAPTION_BG: Rect = { x: 0.1, y: 0.82, w: 0.8, h: 0.08 };
+const MAX_CAPTIONS = 3;
+
+export type Caption = {
+  id: string;
+  text: string;
+  font: string;
+  color: string;
+  sizePx: number; // px on export canvas
+  rect: Rect;
+  bgColor: string;
+  bgOpacity: number;
+  bgRect: Rect;
+};
+
+const makeCaption = (overrides: Partial<Caption> = {}): Caption => ({
+  id: `cap-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  text: "",
+  font: "Space Grotesk",
+  color: "#F0F0FF",
+  sizePx: 64,
+  rect: { ...DEFAULT_CAPTION_RECT },
+  bgColor: "#0A0A0F",
+  bgOpacity: 0.6,
+  bgRect: { ...DEFAULT_CAPTION_BG },
+  ...overrides,
+});
 
 const PATTERN_LOOKUP = (id: string) => PATTERNS.find((p) => p.id === id)?.src;
 
