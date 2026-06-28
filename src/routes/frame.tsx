@@ -35,7 +35,34 @@ export const Route = createFileRoute("/frame")({
 });
 
 const DEFAULT_LOGO: Rect = { x: 0.04, y: 0.04, w: 0.18, h: 0.1 };
-const DEFAULT_CAPTION: Rect = { x: 0.1, y: 0.82, w: 0.8, h: 0.1 };
+const DEFAULT_CAPTION_RECT: Rect = { x: 0.1, y: 0.82, w: 0.8, h: 0.08 };
+const DEFAULT_CAPTION_BG: Rect = { x: 0.1, y: 0.82, w: 0.8, h: 0.08 };
+const MAX_CAPTIONS = 3;
+
+export type Caption = {
+  id: string;
+  text: string;
+  font: string;
+  color: string;
+  sizePx: number; // px on export canvas
+  rect: Rect;
+  bgColor: string;
+  bgOpacity: number;
+  bgRect: Rect;
+};
+
+const makeCaption = (overrides: Partial<Caption> = {}): Caption => ({
+  id: `cap-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  text: "",
+  font: "Space Grotesk",
+  color: "#F0F0FF",
+  sizePx: 64,
+  rect: { ...DEFAULT_CAPTION_RECT },
+  bgColor: "#0A0A0F",
+  bgOpacity: 0.6,
+  bgRect: { ...DEFAULT_CAPTION_BG },
+  ...overrides,
+});
 
 const PATTERN_LOOKUP = (id: string) => PATTERNS.find((p) => p.id === id)?.src;
 
@@ -65,14 +92,27 @@ function StudioPage() {
   const [logoRect, setLogoRect] = useState<Rect>(DEFAULT_LOGO);
   const [logoOpacity, setLogoOpacity] = useState(1);
 
-  // caption
-  const [caption, setCaption] = useState("");
-  const [captionFont, setCaptionFont] = useState("Space Grotesk");
-  const [captionSize, setCaptionSize] = useState(0.045);
-  const [captionColor, setCaptionColor] = useState("#F0F0FF");
-  const [captionRect, setCaptionRect] = useState<Rect>(DEFAULT_CAPTION);
-  const [captionBg, setCaptionBg] = useState("#0A0A0F");
-  const [captionBgOpacity, setCaptionBgOpacity] = useState(0.6);
+  // caption (array of up to 3)
+  const [captions, setCaptions] = useState<Caption[]>(() => [makeCaption()]);
+  const updateCaption = (id: string, patch: Partial<Caption>) =>
+    setCaptions((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  const removeCaption = (id: string) =>
+    setCaptions((prev) => (prev.length <= 1 ? prev : prev.filter((c) => c.id !== id)));
+  const addCaption = () =>
+    setCaptions((prev) => {
+      if (prev.length >= MAX_CAPTIONS) return prev;
+      // place new caption above existing ones
+      const topY = prev.reduce((min, c) => Math.min(min, c.rect.y, c.bgRect.y), 1);
+      const newY = Math.max(0.02, topY - 0.1);
+      const cap = makeCaption({
+        rect: { x: 0.1, y: newY, w: 0.8, h: 0.08 },
+        bgRect: { x: 0.1, y: newY, w: 0.8, h: 0.08 },
+      });
+      return [cap, ...prev];
+    });
+
+  // preview mode (hide editing affordances)
+  const [previewMode, setPreviewMode] = useState(false);
 
   // export
   const [presetId, setPresetId] = useState<OutputPresetId>("web-1x1");
@@ -233,13 +273,7 @@ function StudioPage() {
     logoUrl,
     logoRect,
     logoOpacity,
-    caption,
-    captionFont,
-    captionSize,
-    captionColor,
-    captionRect,
-    captionBg,
-    captionBgOpacity,
+    captions,
     trial,
   };
 
@@ -260,7 +294,7 @@ function StudioPage() {
   const patternSrc = patternId ? PATTERN_LOOKUP(patternId) : undefined;
 
   const logoCtl = useRectController(stageRef, logoRect, setLogoRect, { snap: 0.008 });
-  const capCtl = useRectController(stageRef, captionRect, setCaptionRect, { snap: 0.008 });
+  
 
   const framesForRatio = useMemo(
     () => [...PRESET_FRAMES.filter((f) => f.ratio === ratio), ...(customFrame && customFrame.ratio === ratio ? [customFrame] : [])],
@@ -296,7 +330,7 @@ function StudioPage() {
               <div
                 ref={stageRef}
                 className="relative w-full overflow-hidden bg-white scanlines select-none"
-                style={{ aspectRatio: `${preset.w} / ${preset.h}` }}
+                style={{ aspectRatio: `${preset.w} / ${preset.h}`, containerType: "inline-size" }}
               >
                 {/* Frame */}
                 {activeFrame && (
@@ -343,6 +377,7 @@ function StudioPage() {
                     stageRef={stageRef}
                     minW={minSlotW}
                     minH={minSlotH}
+                    previewMode={previewMode}
                     onRectChange={(r) => setSlotRect(i, r)}
                     onPick={(f) => setSlotPhoto(i, f)}
                     onClear={() => clearSlotPhoto(i)}
@@ -350,34 +385,21 @@ function StudioPage() {
                   />
                 ))}
 
-                {/* caption */}
-                {caption.trim() && (
-                  <DraggableBox rect={captionRect} ctl={capCtl} accent>
-                    <div
-                      className="absolute inset-0 flex items-center justify-center text-center"
-                      style={{
-                        background: captionBg,
-                        opacity: captionBgOpacity,
-                      }}
-                    />
-                    <div
-                      className="relative flex size-full items-center justify-center px-2 text-center"
-                      style={{
-                        color: captionColor,
-                        fontFamily: `${captionFont}, sans-serif`,
-                        fontWeight: 700,
-                        fontSize: `calc(${captionSize} * 100cqw)`,
-                        lineHeight: 1.05,
-                      }}
-                    >
-                      {caption}
-                    </div>
-                  </DraggableBox>
-                )}
+                {/* captions */}
+                {captions.map((cap) => (
+                  <CaptionLayer
+                    key={cap.id}
+                    caption={cap}
+                    stageRef={stageRef}
+                    previewMode={previewMode}
+                    onChange={(patch) => updateCaption(cap.id, patch)}
+                    canvasW={preset.w}
+                  />
+                ))}
 
                 {/* logo */}
                 {logoUrl && (
-                  <DraggableBox rect={logoRect} ctl={logoCtl}>
+                  <DraggableBox rect={logoRect} ctl={logoCtl} previewMode={previewMode}>
                     <img
                       src={logoUrl}
                       alt=""
@@ -399,7 +421,20 @@ function StudioPage() {
 
             {/* Quick controls — directly below LIVE_PREVIEW */}
             <div className="mt-4">
-              <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary/55">quick_controls</div>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/55">quick_controls</span>
+                <button
+                  onClick={() => setPreviewMode((v) => !v)}
+                  className={`rounded border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] transition-all ${
+                    previewMode
+                      ? "border-primary bg-primary/30 text-primary neon-glow"
+                      : "border-primary/30 text-primary/70 hover:bg-primary/10"
+                  }`}
+                  title="Toggle clean preview (hide edit handles)"
+                >
+                  {previewMode ? "● preview" : "preview"}
+                </button>
+              </div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 {[
                   ["layout", "01 layout"],
@@ -421,6 +456,7 @@ function StudioPage() {
                 ))}
               </div>
             </div>
+
 
 
             {/* Frame strip — gated behind 02 FRAME button */}
@@ -532,49 +568,91 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="05 · Caption" mobileActive={activePanel === "caption"}>
-            <input
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="// type your caption"
-              className="w-full rounded border border-primary/20 bg-background px-3 py-2 font-mono text-sm placeholder:text-primary/30 focus:border-primary focus:outline-none"
-            />
-            {caption && (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  <select
-                    value={captionFont}
-                    onChange={(e) => setCaptionFont(e.target.value)}
-                    className="rounded border border-primary/20 bg-background px-2 py-1.5 font-mono text-[11px]"
-                  >
-                    {["Space Grotesk", "JetBrains Mono", "Georgia", "Impact", "Courier New"].map((f) => (
-                      <option key={f}>{f}</option>
-                    ))}
-                  </select>
+          <Panel
+            title="05 · Caption"
+            mobileActive={activePanel === "caption"}
+            headerRight={
+              <button
+                onClick={addCaption}
+                disabled={captions.length >= MAX_CAPTIONS}
+                className="rounded border border-primary/30 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-primary/80 hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                + add caption {captions.length}/{MAX_CAPTIONS}
+              </button>
+            }
+          >
+            {captions.map((cap, idx) => (
+              <div key={cap.id} className="space-y-2 rounded border border-primary/15 bg-background/40 p-2">
+                <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.25em] text-primary/60">
+                  <span>caption_{idx + 1}</span>
+                  {captions.length > 1 && (
+                    <button
+                      onClick={() => removeCaption(cap.id)}
+                      className="rounded px-1 text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
+                      title="remove this caption"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                {/* Size slider — first, closest to LIVE_PREVIEW on mobile */}
+                <Slider
+                  label={`Size ${cap.sizePx}px`}
+                  min={10}
+                  max={350}
+                  step={1}
+                  value={cap.sizePx}
+                  onChange={(v) => updateCaption(cap.id, { sizePx: v })}
+                />
+                {/* bg color + fill slider on one row */}
+                <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={captionColor}
-                    onChange={(e) => setCaptionColor(e.target.value)}
-                    className="h-full w-full cursor-pointer rounded border border-primary/20 bg-background"
+                    value={cap.bgColor}
+                    onChange={(e) => updateCaption(cap.id, { bgColor: e.target.value })}
+                    className="h-8 w-10 shrink-0 cursor-pointer rounded border border-primary/20 bg-background"
+                    title="caption background"
+                  />
+                  <div className="flex-1">
+                    <Slider
+                      label={`Fill ${(cap.bgOpacity * 100).toFixed(0)}%`}
+                      min={0}
+                      max={100}
+                      value={cap.bgOpacity * 100}
+                      onChange={(v) => updateCaption(cap.id, { bgOpacity: v / 100 })}
+                    />
+                  </div>
+                </div>
+                {/* text input + font color (small square) */}
+                <div className="flex items-center gap-2">
+                  <input
+                    value={cap.text}
+                    onChange={(e) => updateCaption(cap.id, { text: e.target.value })}
+                    placeholder="// type your caption"
+                    className="flex-1 rounded border border-primary/20 bg-background px-2 py-1.5 font-mono text-sm placeholder:text-primary/30 focus:border-primary focus:outline-none"
+                  />
+                  <input
+                    type="color"
+                    value={cap.color}
+                    onChange={(e) => updateCaption(cap.id, { color: e.target.value })}
+                    className="h-8 w-8 shrink-0 cursor-pointer rounded border border-primary/20 bg-background"
+                    title="font color"
                   />
                 </div>
-                <Slider label={`Size ${(captionSize * 100).toFixed(1)}%`} min={1} max={15} step={0.1} value={captionSize * 100} onChange={(v) => setCaptionSize(v / 100)} />
-                <div className="space-y-2 rounded border border-primary/15 p-2">
-                  <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary/60">caption_background</div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={captionBg}
-                      onChange={(e) => setCaptionBg(e.target.value)}
-                      className="h-8 w-12 cursor-pointer rounded border border-primary/20 bg-background"
-                    />
-                    <span className="font-mono text-[10px] text-primary/60">drag box + drag corner on preview</span>
-                  </div>
-                  <Slider label={`Fill ${(captionBgOpacity * 100).toFixed(0)}%`} min={0} max={100} value={captionBgOpacity * 100} onChange={(v) => setCaptionBgOpacity(v / 100)} />
-                </div>
-              </>
-            )}
+                {/* font select (narrower) */}
+                <select
+                  value={cap.font}
+                  onChange={(e) => updateCaption(cap.id, { font: e.target.value })}
+                  className="w-3/5 rounded border border-primary/20 bg-background px-2 py-1.5 font-mono text-[11px]"
+                >
+                  {["Space Grotesk", "JetBrains Mono", "Georgia", "Impact", "Courier New"].map((f) => (
+                    <option key={f}>{f}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
           </Panel>
+
 
           <Panel title="06 · Export" mobileActive={activePanel === "export"}>
             <select
@@ -613,17 +691,19 @@ function StudioPage() {
         </aside>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 pb-4 md:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
-          <span>drag slots · corner = resize · click slot to upload</span>
-          <button
-            onClick={resetLayout}
-            className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
-          >
-            Reset_Layout
-          </button>
+      {!previewMode && (
+        <div className="mx-auto max-w-7xl px-4 pb-4 md:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
+            <span>drag slots · corner = resize · click slot to upload</span>
+            <button
+              onClick={resetLayout}
+              className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
+            >
+              Reset_Layout
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <SiteFooter />
 
@@ -642,16 +722,68 @@ function Panel({
   title,
   children,
   mobileActive = true,
+  headerRight,
 }: {
   title: string;
   children: React.ReactNode;
   mobileActive?: boolean;
+  headerRight?: React.ReactNode;
 }) {
   return (
     <section className={`space-y-3 rounded border border-primary/15 bg-card/40 p-4 ${mobileActive ? "block" : "hidden lg:block"}`}>
-      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">{title}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">{title}</div>
+        {headerRight}
+      </div>
       {children}
     </section>
+  );
+}
+
+function CaptionLayer({
+  caption,
+  stageRef,
+  previewMode,
+  onChange,
+  canvasW,
+}: {
+  caption: Caption;
+  stageRef: React.RefObject<HTMLDivElement | null>;
+  previewMode: boolean;
+  onChange: (patch: Partial<Caption>) => void;
+  canvasW: number;
+}) {
+  const bgCtl = useRectController(stageRef, caption.bgRect, (r) => onChange({ bgRect: r }), { snap: 0.008 });
+  const txtCtl = useRectController(stageRef, caption.rect, (r) => onChange({ rect: r }), { snap: 0.008 });
+  // font size in preview: stage uses container queries (100cqw = stage width)
+  const fontSize = `calc(${caption.sizePx / canvasW} * 100cqw)`;
+  return (
+    <>
+      {/* bg rect (independent) */}
+      <DraggableBox rect={caption.bgRect} ctl={bgCtl} accent previewMode={previewMode}>
+        <div
+          className="absolute inset-0"
+          style={{ background: caption.bgColor, opacity: caption.bgOpacity }}
+        />
+      </DraggableBox>
+      {/* text rect (independent) */}
+      {caption.text.trim() && (
+        <DraggableBox rect={caption.rect} ctl={txtCtl} previewMode={previewMode}>
+          <div
+            className="flex size-full items-center justify-center px-1 text-center"
+            style={{
+              color: caption.color,
+              fontFamily: `${caption.font}, sans-serif`,
+              fontWeight: 700,
+              fontSize,
+              lineHeight: 1.05,
+            }}
+          >
+            {caption.text}
+          </div>
+        </DraggableBox>
+      )}
+    </>
   );
 }
 
@@ -677,19 +809,21 @@ function Slider({
 }
 
 function PhotoSlot({
-  index, slot, stageRef, minW, minH, onRectChange, onPick, onClear, onCamera,
+  index, slot, stageRef, minW, minH, previewMode = false, onRectChange, onPick, onClear, onCamera,
 }: {
   index: number;
   slot: SlotState;
   stageRef: React.RefObject<HTMLDivElement | null>;
   minW: number;
   minH: number;
+  previewMode?: boolean;
   onRectChange: (r: Rect) => void;
   onPick: (f: File | null) => void;
   onClear: () => void;
   onCamera: () => void;
 }) {
   const ctl = useRectController(stageRef, slot.rect, onRectChange, { minW, minH, snap: 0.008 });
+  const interactive = !previewMode;
   const edgeHandle = (edge: "n" | "s" | "e" | "w", cls: string, label: string) => (
     <span
       onPointerDown={ctl.onPointerDown(edge)}
@@ -702,29 +836,31 @@ function PhotoSlot({
   );
   return (
     <div
-      className="absolute touch-none border-2 border-dashed border-primary/70"
+      className={`absolute touch-none ${interactive ? "border-2 border-dashed border-primary/70" : ""}`}
       style={{
         left: `${slot.rect.x * 100}%`,
         top: `${slot.rect.y * 100}%`,
         width: `${slot.rect.w * 100}%`,
         height: `${slot.rect.h * 100}%`,
       }}
-      onPointerDown={ctl.onPointerDown("move")}
-      onPointerMove={ctl.onPointerMove}
-      onPointerUp={ctl.onPointerUp}
+      onPointerDown={interactive ? ctl.onPointerDown("move") : undefined}
+      onPointerMove={interactive ? ctl.onPointerMove : undefined}
+      onPointerUp={interactive ? ctl.onPointerUp : undefined}
     >
       {slot.photoUrl ? (
         <>
           <img src={slot.photoUrl} alt="" draggable={false} className="pointer-events-none absolute inset-0 size-full object-cover" />
-          <button
-            onClick={(e) => { e.stopPropagation(); onClear(); }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="absolute top-1 right-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] uppercase text-destructive hover:bg-destructive hover:text-destructive-foreground"
-          >
-            ×
-          </button>
+          {interactive && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onClear(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute top-1 right-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] uppercase text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
+              ×
+            </button>
+          )}
         </>
-      ) : (
+      ) : interactive ? (
         <div
           className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-card/40 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60"
           onPointerDown={(e) => e.stopPropagation()}
@@ -747,63 +883,66 @@ function PhotoSlot({
             </button>
           </div>
         </div>
+      ) : null}
+      {interactive && (
+        <>
+          <span className="absolute top-1 left-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] text-primary/80">
+            {index + 1}
+          </span>
+          {edgeHandle("n", "left-1/2 -translate-x-1/2 -top-2.5 h-5 px-2 cursor-ns-resize rounded-sm", "↕ DRAG")}
+          {edgeHandle("s", "left-1/2 -translate-x-1/2 -bottom-2.5 h-5 px-2 cursor-ns-resize rounded-sm", "↕ DRAG")}
+          {edgeHandle("w", "top-1/2 -translate-y-1/2 -left-2.5 w-5 py-2 cursor-ew-resize rounded-sm [writing-mode:vertical-rl]", "↔ DRAG")}
+          {edgeHandle("e", "top-1/2 -translate-y-1/2 -right-2.5 w-5 py-2 cursor-ew-resize rounded-sm [writing-mode:vertical-rl]", "↔ DRAG")}
+          <span
+            onPointerDown={ctl.onPointerDown("se")}
+            onPointerMove={ctl.onPointerMove}
+            onPointerUp={ctl.onPointerUp}
+            className="absolute z-10 -bottom-1.5 -right-1.5 size-4 cursor-nwse-resize rounded-sm bg-primary shadow-[0_0_8px_currentColor]"
+          />
+        </>
       )}
-      <span className="absolute top-1 left-1 z-20 rounded bg-background/80 px-1.5 py-0.5 font-mono text-[9px] text-primary/80">
-        {index + 1}
-      </span>
-
-      {/* edge resize handles with visible DRAG labels */}
-      {edgeHandle("n", "left-1/2 -translate-x-1/2 -top-2.5 h-5 px-2 cursor-ns-resize rounded-sm", "↕ DRAG")}
-      {edgeHandle("s", "left-1/2 -translate-x-1/2 -bottom-2.5 h-5 px-2 cursor-ns-resize rounded-sm", "↕ DRAG")}
-      {edgeHandle("w", "top-1/2 -translate-y-1/2 -left-2.5 w-5 py-2 cursor-ew-resize rounded-sm [writing-mode:vertical-rl]", "↔ DRAG")}
-      {edgeHandle("e", "top-1/2 -translate-y-1/2 -right-2.5 w-5 py-2 cursor-ew-resize rounded-sm [writing-mode:vertical-rl]", "↔ DRAG")}
-
-      {/* corner resize */}
-      <span
-        onPointerDown={ctl.onPointerDown("se")}
-        onPointerMove={ctl.onPointerMove}
-        onPointerUp={ctl.onPointerUp}
-        className="absolute z-10 -bottom-1.5 -right-1.5 size-4 cursor-nwse-resize rounded-sm bg-primary shadow-[0_0_8px_currentColor]"
-      />
     </div>
   );
 }
 
 function DraggableBox({
-  rect, ctl, accent, children,
+  rect, ctl, accent, previewMode = false, children,
 }: {
   rect: Rect;
   ctl: ReturnType<typeof useRectController>;
   accent?: boolean;
+  previewMode?: boolean;
   children: React.ReactNode;
 }) {
+  const interactive = !previewMode;
   return (
     <div
-      className={`absolute touch-none border ${accent ? "border-secondary/60" : "border-primary/60"} border-dashed`}
+      className={`absolute touch-none ${interactive ? `border border-dashed ${accent ? "border-secondary/60" : "border-primary/60"}` : ""}`}
       style={{
         left: `${rect.x * 100}%`,
         top: `${rect.y * 100}%`,
         width: `${rect.w * 100}%`,
         height: `${rect.h * 100}%`,
-        containerType: "inline-size",
       }}
-      onPointerDown={ctl.onPointerDown("move")}
-      onPointerMove={ctl.onPointerMove}
-      onPointerUp={ctl.onPointerUp}
+      onPointerDown={interactive ? ctl.onPointerDown("move") : undefined}
+      onPointerMove={interactive ? ctl.onPointerMove : undefined}
+      onPointerUp={interactive ? ctl.onPointerUp : undefined}
     >
       {children}
-      {accent && (
+      {interactive && accent && (
         <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-sm bg-secondary px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-secondary-foreground shadow-[0_0_8px_currentColor]">
           drag
         </span>
       )}
-      <span
-        onPointerDown={ctl.onPointerDown("se")}
-        onPointerMove={ctl.onPointerMove}
-        onPointerUp={ctl.onPointerUp}
-        className={`absolute -bottom-1.5 -right-1.5 z-10 size-4 cursor-nwse-resize ${accent ? "bg-secondary" : "bg-primary"} shadow-[0_0_8px_currentColor]`}
-      />
-      {accent && (
+      {interactive && (
+        <span
+          onPointerDown={ctl.onPointerDown("se")}
+          onPointerMove={ctl.onPointerMove}
+          onPointerUp={ctl.onPointerUp}
+          className={`absolute -bottom-1.5 -right-1.5 z-10 size-4 cursor-nwse-resize ${accent ? "bg-secondary" : "bg-primary"} shadow-[0_0_8px_currentColor]`}
+        />
+      )}
+      {interactive && accent && (
         <span className="absolute -bottom-7 right-0 rounded-sm bg-secondary px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-secondary-foreground shadow-[0_0_8px_currentColor]">
           resize
         </span>
