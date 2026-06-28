@@ -141,24 +141,26 @@ export async function renderToCanvas(
     drawCover(ctx, photo, dx, dy, dw, dh);
   }
 
-  // 5) caption bg + text
-  if (state.caption.trim()) {
-    const r = state.captionRect;
-    const px = r.x * width;
-    const py = r.y * height;
-    const pw = r.w * width;
-    const ph = r.h * height;
+  // 5) captions: bg rect + text rect (independent)
+  for (const cap of state.captions ?? []) {
+    if (!cap.text.trim()) continue;
+    const bg = cap.bgRect;
     ctx.save();
-    ctx.globalAlpha = state.captionBgOpacity;
-    ctx.fillStyle = state.captionBg;
-    ctx.fillRect(px, py, pw, ph);
+    ctx.globalAlpha = cap.bgOpacity;
+    ctx.fillStyle = cap.bgColor;
+    ctx.fillRect(bg.x * width, bg.y * height, bg.w * width, bg.h * height);
     ctx.restore();
-    const fontPx = Math.max(12, state.captionSize * width);
-    ctx.fillStyle = state.captionColor;
-    ctx.font = `bold ${fontPx}px ${state.captionFont}, sans-serif`;
+    const tr = cap.rect;
+    const tx = tr.x * width;
+    const ty = tr.y * height;
+    const tw = tr.w * width;
+    const th = tr.h * height;
+    const fontPx = Math.max(8, cap.sizePx);
+    ctx.fillStyle = cap.color;
+    ctx.font = `bold ${fontPx}px ${cap.font}, sans-serif`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    ctx.fillText(state.caption, px + pw / 2, py + ph / 2, pw * 0.95);
+    ctx.fillText(cap.text, tx + tw / 2, ty + th / 2, tw * 0.95);
   }
 
   // 6) logo
