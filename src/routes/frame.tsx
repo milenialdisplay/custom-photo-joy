@@ -408,16 +408,6 @@ function StudioPage() {
               </div>
             </div>
 
-            {/* Slot hint + reset */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
-              <span>drag slots · corner = resize · click slot to upload</span>
-              <button
-                onClick={resetLayout}
-                className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
-              >
-                Reset_Layout
-              </button>
-            </div>
 
             {/* Frame strip — gated behind 02 FRAME button */}
             {activePanel === "frame" && (
@@ -603,6 +593,18 @@ function StudioPage() {
             )}
           </Panel>
         </aside>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 pb-4 md:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
+          <span>drag slots · corner = resize · click slot to upload</span>
+          <button
+            onClick={resetLayout}
+            className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
+          >
+            Reset_Layout
+          </button>
+        </div>
       </div>
 
       <SiteFooter />
@@ -840,7 +842,7 @@ function FrameStrip({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* LEFT: frame tiles + upload */}
-        <div className="flex flex-wrap gap-2">
+        <div className="order-2 md:order-1 flex flex-wrap gap-2">
           {frames.map((f) => (
             <button
               key={f.id}
@@ -894,7 +896,7 @@ function FrameStrip({
         </div>
 
         {/* RIGHT: tint swatches + hue/sat sliders */}
-        <div className="space-y-3">
+        <div className="order-1 md:order-2 space-y-3">
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary/50">tint</div>
           <div className="grid grid-cols-7 gap-2">
             {TINT_PRESETS.map((t) => (
