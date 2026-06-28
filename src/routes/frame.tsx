@@ -443,7 +443,7 @@ function StudioPage() {
 
         {/* CONTROLS */}
         <aside className="space-y-5">
-          <Panel title="01 · Ratio & Layout" mobileActive={activeMobilePanel === "layout"}>
+          <Panel title="01 · Ratio & Layout" mobileActive={activePanel === "layout"}>
             <div className="grid grid-cols-3 gap-2">
               {RATIOS.map((r) => (
                 <button
@@ -474,7 +474,7 @@ function StudioPage() {
             </div>
           </Panel>
 
-          <Panel title="02 · Frame" mobileActive={activeMobilePanel === "frame"}>
+          <Panel title="02 · Frame" mobileActive={activePanel === "frame"}>
             <div className="grid grid-cols-3 gap-2">
               {framesForRatio.map((f) => (
                 <button
@@ -501,7 +501,7 @@ function StudioPage() {
             </label>
           </Panel>
 
-          <Panel title="03 · Pattern" mobileActive={activeMobilePanel === "pattern"}>
+          <Panel title="03 · Pattern" mobileActive={activePanel === "pattern"}>
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => setPatternId(null)}
@@ -535,7 +535,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="04 · Logo" mobileActive={activeMobilePanel === "logo"}>
+          <Panel title="04 · Logo" mobileActive={activePanel === "logo"}>
             <label className="block cursor-pointer rounded border border-dashed border-primary/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70 hover:bg-primary/5">
               <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickLogo(e.target.files?.[0] ?? null)} />
               {logoUrl ? "Replace_Logo" : "Upload_Logo"}
@@ -550,7 +550,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="05 · Caption" mobileActive={activeMobilePanel === "caption"}>
+          <Panel title="05 · Caption" mobileActive={activePanel === "caption"}>
             <input
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
@@ -594,7 +594,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="06 · Export" mobileActive={activeMobilePanel === "export"}>
+          <Panel title="06 · Export" mobileActive={activePanel === "export"}>
             <select
               value={presetId}
               onChange={(e) => setPresetId(e.target.value as OutputPresetId)}
