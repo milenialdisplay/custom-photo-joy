@@ -1,4 +1,4 @@
-import { PRESET_FRAMES, WATERMARK_HEIGHT_RATIO } from "@/lib/frames";
+import { PRESET_FRAMES } from "@/lib/frames";
 import brandWhiteUrl from "@/assets/brand/dpotopoto-white.png";
 import type { Frame } from "@/lib/frames";
 import type { Rect } from "@/components/studio/useDraggable";
@@ -165,26 +165,31 @@ export async function renderToCanvas(
     ctx.restore();
   }
 
-  // 6.5) bottom-left brand mark
+  // 6.5) bottom-left brand mark on a tight black pill (legible over white frames)
   const brand = await loadImage(brandWhiteUrl);
-  const brandWidth = width * 0.2;
+  const brandWidth = width * 0.12;
   const brandHeight = (brand.height / brand.width) * brandWidth;
+  const padX = brandWidth * 0.08;
+  const padY = brandHeight * 0.3;
+  const boxX = width * 0.04;
+  const boxY = height - brandHeight - padY * 2 - height * 0.04;
+  const boxW = brandWidth + padX * 2;
+  const boxH = brandHeight + padY * 2;
   ctx.save();
-  ctx.globalAlpha = 0.95;
-  ctx.drawImage(brand, width * 0.04, height - brandHeight - height * 0.05, brandWidth, brandHeight);
+  ctx.fillStyle = "rgba(0,0,0,0.9)";
+  const r = Math.min(boxW, boxH) * 0.15;
+  ctx.beginPath();
+  ctx.moveTo(boxX + r, boxY);
+  ctx.arcTo(boxX + boxW, boxY, boxX + boxW, boxY + boxH, r);
+  ctx.arcTo(boxX + boxW, boxY + boxH, boxX, boxY + boxH, r);
+  ctx.arcTo(boxX, boxY + boxH, boxX, boxY, r);
+  ctx.arcTo(boxX, boxY, boxX + boxW, boxY, r);
+  ctx.closePath();
+  ctx.fill();
+  ctx.drawImage(brand, boxX + padX, boxY + padY, brandWidth, brandHeight);
   ctx.restore();
 
-  // 7) trial watermark band
-  if (state.trial) {
-    const bandH = Math.max(28, height * WATERMARK_HEIGHT_RATIO);
-    ctx.fillStyle = "rgba(10,10,15,0.85)";
-    ctx.fillRect(0, height - bandH, width, bandH);
-    ctx.fillStyle = "#73FFB8";
-    ctx.font = `bold ${bandH * 0.5}px "JetBrains Mono", monospace`;
-    ctx.textBaseline = "middle";
-    ctx.textAlign = "center";
-    ctx.fillText("dpotopoto.com — TRIAL", width / 2, height - bandH / 2);
-  }
+  // trial watermark removed — branding mark above covers attribution.
 
   return canvas;
 }

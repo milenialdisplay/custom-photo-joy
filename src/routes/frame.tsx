@@ -388,15 +388,11 @@ function StudioPage() {
                   </DraggableBox>
                 )}
 
-                {/* trial watermark band */}
-                {trial && (
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-[4.5%] items-center justify-center bg-background/85 font-mono text-[8px] tracking-[0.3em] text-primary">
-                    DPOTOPOTO.COM — TRIAL
-                  </div>
-                )}
-
-                <div className="pointer-events-none absolute bottom-[6.5%] left-[4%] z-10 opacity-95">
-                  <BrandLogo variant="dark" className="text-sm md:text-base" />
+                {/* branding mark — tight black pill keeps wordmark legible over light frames */}
+                <div className="pointer-events-none absolute bottom-[4%] left-[4%] z-10">
+                  <span className="inline-flex items-center rounded-sm bg-black/90 px-2 py-1">
+                    <BrandLogo variant="dark" className="text-[10px] md:text-xs" />
+                  </span>
                 </div>
               </div>
             </div>
