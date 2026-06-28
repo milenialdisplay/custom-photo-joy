@@ -330,7 +330,7 @@ function StudioPage() {
               <div
                 ref={stageRef}
                 className="relative w-full overflow-hidden bg-white scanlines select-none"
-                style={{ aspectRatio: `${preset.w} / ${preset.h}` }}
+                style={{ aspectRatio: `${preset.w} / ${preset.h}`, containerType: "inline-size" }}
               >
                 {/* Frame */}
                 {activeFrame && (
