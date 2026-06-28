@@ -899,40 +899,43 @@ function PhotoSlot({
 }
 
 function DraggableBox({
-  rect, ctl, accent, children,
+  rect, ctl, accent, previewMode = false, children,
 }: {
   rect: Rect;
   ctl: ReturnType<typeof useRectController>;
   accent?: boolean;
+  previewMode?: boolean;
   children: React.ReactNode;
 }) {
+  const interactive = !previewMode;
   return (
     <div
-      className={`absolute touch-none border ${accent ? "border-secondary/60" : "border-primary/60"} border-dashed`}
+      className={`absolute touch-none ${interactive ? `border border-dashed ${accent ? "border-secondary/60" : "border-primary/60"}` : ""}`}
       style={{
         left: `${rect.x * 100}%`,
         top: `${rect.y * 100}%`,
         width: `${rect.w * 100}%`,
         height: `${rect.h * 100}%`,
-        containerType: "inline-size",
       }}
-      onPointerDown={ctl.onPointerDown("move")}
-      onPointerMove={ctl.onPointerMove}
-      onPointerUp={ctl.onPointerUp}
+      onPointerDown={interactive ? ctl.onPointerDown("move") : undefined}
+      onPointerMove={interactive ? ctl.onPointerMove : undefined}
+      onPointerUp={interactive ? ctl.onPointerUp : undefined}
     >
       {children}
-      {accent && (
+      {interactive && accent && (
         <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-sm bg-secondary px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-secondary-foreground shadow-[0_0_8px_currentColor]">
           drag
         </span>
       )}
-      <span
-        onPointerDown={ctl.onPointerDown("se")}
-        onPointerMove={ctl.onPointerMove}
-        onPointerUp={ctl.onPointerUp}
-        className={`absolute -bottom-1.5 -right-1.5 z-10 size-4 cursor-nwse-resize ${accent ? "bg-secondary" : "bg-primary"} shadow-[0_0_8px_currentColor]`}
-      />
-      {accent && (
+      {interactive && (
+        <span
+          onPointerDown={ctl.onPointerDown("se")}
+          onPointerMove={ctl.onPointerMove}
+          onPointerUp={ctl.onPointerUp}
+          className={`absolute -bottom-1.5 -right-1.5 z-10 size-4 cursor-nwse-resize ${accent ? "bg-secondary" : "bg-primary"} shadow-[0_0_8px_currentColor]`}
+        />
+      )}
+      {interactive && accent && (
         <span className="absolute -bottom-7 right-0 rounded-sm bg-secondary px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-secondary-foreground shadow-[0_0_8px_currentColor]">
           resize
         </span>
