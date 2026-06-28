@@ -196,9 +196,6 @@ function Landing() {
                 </li>
               ))}
             </ul>
-            <Link to="/event">
-              <NeonButton size="lg" variant="metal">Explore Event Mode</NeonButton>
-            </Link>
           </div>
         </div>
       </section>
