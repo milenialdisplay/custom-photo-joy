@@ -1,40 +1,50 @@
-## Homepage revision plan (revised)
+## Goal
 
-### 1. Preserve original
-- Copy current `src/routes/index.tsx` → `src/routes/index.original.tsx.bak` as backup (not picked up by router due to extension).
+Rework the `/frame` page (`src/routes/frame.tsx`) layout so the **quick controls row** sits directly under `LIVE_PREVIEW`, and the frame picker UI only appears when the user clicks **02 FRAME**. Preserve a working backup of the current page before making changes.
 
-### 2. Hero (`src/routes/index.tsx`)
-- `// System Initialized` → `// Personal Photobooth`
-- H1: `YOUR PHONE IS A NEON BOOTH.` → `MAKE YOUR PHONE A PRIVATE PHOTOBOOTH.` (keep "PRIVATE" as the neon highlight word)
-- Paragraph → "Turn any screen into a professional capture station. Instant prints, branded frames, pure arcade energy — for any personal, business and social activities, schools, parties, weddings, and brand events."
-- CTAs: replace `Start Free Trial` (→ `/snap`) with `Start Free Demo` linking `/frame`. Remove the `Try a Demo Booth` button.
+## 0. Backup current working version
 
-### 3. Modules grid ("// Modules — Three ways to snap")
-Reduce to 3 cards, in this order:
-- `01 / Frame` — "Design Booth" — existing Frame description, `serviceFrame` image → `/frame`
-- `02 / Printer` — "Printing Booth" — "Print up to 5R at any printing booth. Pay per print. No subscription." — `servicePrint` → `/printer`
-- `03 / Event` — "Memorable Moment" — "Create your own frame, let any guest snap from their own phone, and share or print on the spot. One QR code turns the whole room into your photo crew." — `kioskUnit` image → `/event`
+- Copy `src/routes/frame.tsx` → `src/routes/frame.original.tsx.bak` (the `.bak` extension keeps it out of the router, identical to how `index.original.tsx.bak` is preserved).
+- If the revision misbehaves, restoring is a single-file copy back over `frame.tsx`.
 
-(Removes the old standalone `01 / Capture` card.)
+## 1. Promote quick controls under LIVE_PREVIEW
 
-### 4. Kiosk image section (kept, trimmed)
-Keep the existing full-width section with the `kioskUnit` metal-panel image. Remove the `// Event Module` tag, the `04 / Event — Memorable Moment` heading, and the intro paragraph. Keep only the 4-item bullet list to the right of (or below) the image:
-- Create or upload your own event frame
-- Snap from any smartphone, tablet, or laptop
-- Single booth device OR shared QR for every guest
-- Share digitally or send to the printer queue
+- Move the existing `quick_controls` grid (currently `lg:hidden`, lines ~411–433) to render **immediately below** the preview stage, before any frame UI.
+- Remove the `lg:hidden` gate so all 6 buttons (`01 LAYOUT`, `02 FRAME`, `03 PATTERN`, `04 LOGO`, `05 CAPTION`, `06 EXPORT`) show on desktop too.
+- Rename state `activeMobilePanel` → `activePanel` since it now drives both viewports.
 
-This sits between the modules grid and the footer.
+## 2. Move "drag slots / Reset_Layout" hint row
 
-### 5. Remove pricing from homepage
-- Remove the `<PricingGrid />` call and the "Printer Booth and Kiosk Mode…" note from the homepage.
-- Keep `PricingGrid` exported from `index.tsx` so `/pricing` continues to work unchanged.
-- Pricing on `/printer` and `/event` pages is untouched.
+- Move the row at lines 401–409 (`drag slots · corner = resize · click slot to upload` + `Reset_Layout`) so it renders **right after** the quick-controls grid.
 
-### 6. Footer (`src/components/site/SiteFooter.tsx`)
-- Remove `SYSTEM_v.03`, Instagram, and TikTok links.
-- Replace `Support` with `Contact Us` (placeholder `href="#"` — WhatsApp link to be added later).
+## 3. Gate `FrameStrip` behind "02 FRAME"
 
-### Notes
-- No backend / business-logic changes. `/snap` route stays but is no longer linked from the homepage.
-- Backup file makes restoring the previous homepage a one-file copy.
+- Wrap `<FrameStrip />` in `activePanel === "frame" && (...)` so it only appears when the user taps **02 FRAME**, positioned below the quick controls + reset row.
+
+## 4. Restructure `FrameStrip` into a two-column layout
+
+```text
+┌────────────────────────────────────────────────────────────┐
+│ frames · tap to preview · upload your own   1 frame · 7 tints│
+├──────────────────────────┬─────────────────────────────────┤
+│ [white ratio frame tile] │ [7 tint swatches grid]          │
+│ [+ Upload tile]          │ [Hue slider]                    │
+│                          │ [Saturation slider]             │
+└──────────────────────────┴─────────────────────────────────┘
+```
+
+- Replace the current vertical stack (frames row → tint row) with `grid grid-cols-1 md:grid-cols-2 gap-4`.
+- Left column: existing frame tile(s) + `+ Upload` tile.
+- Right column: 7 tint swatches in `grid grid-cols-7 gap-2`, then `<Slider>` for Hue (0–360) and Saturation (0–100).
+- Extend `FrameStrip` props with `onHueChange` / `onSatChange`; pass `setFrameHue` / `setFrameSat` from `StudioPage`. Reuse the existing `Slider` component (move its declaration above `FrameStrip` if scoping requires it).
+
+## 5. Remove the now-duplicate "02 · Frame" aside panel
+
+- Delete the entire right-side `<Panel title="02 · Frame" ...>` block (lines 470–495), including its `Upload_Custom_Frame` button and Hue/Saturation sliders.
+- Other panels (`01 Ratio & Layout`, `03 Pattern`, `04 Logo`, `05 Caption`, `06 Export`) and their `activePanel` keys stay unchanged.
+
+## 6. Preserve behavior
+
+- All state (`frameId`, `frameHue`, `frameSat`, `customFrame`, etc.) and handlers unchanged.
+- `activePanel` defaults to `"layout"` so the FrameStrip stays hidden on initial load.
+- No export pipeline, asset, or other route changes.

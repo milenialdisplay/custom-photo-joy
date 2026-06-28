@@ -40,7 +40,7 @@ const DEFAULT_CAPTION: Rect = { x: 0.1, y: 0.82, w: 0.8, h: 0.1 };
 const PATTERN_LOOKUP = (id: string) => PATTERNS.find((p) => p.id === id)?.src;
 
 function StudioPage() {
-  const [activePanel, setActivePanel] = useState<"layout" | "frame" | "pattern" | "logo" | "caption" | "export">("layout");
+  const [activeMobilePanel, setActiveMobilePanel] = useState<"layout" | "frame" | "pattern" | "logo" | "caption" | "export">("layout");
   // ratio + layout
   const [ratio, setRatio] = useState<Ratio>("1:1");
   const [slotCount, setSlotCount] = useState<SlotCount>(1);
@@ -383,8 +383,32 @@ function StudioPage() {
               </div>
             </div>
 
-            {/* Quick controls — directly below LIVE_PREVIEW */}
-            <div className="mt-4">
+            {/* Prominent frame quick-picker */}
+            <FrameStrip
+              frames={framesForRatio}
+              activeFrameId={frameId}
+              onPickFrame={setFrameId}
+              onPickCustomFrame={onPickCustomFrame}
+              hasCustom={!!customFrame && customFrame.ratio === ratio}
+              hue={frameHue}
+              sat={frameSat}
+              onPickTint={(h, s) => {
+                setFrameHue(h);
+                setFrameSat(s);
+              }}
+            />
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
+              <span>drag slots · corner = resize · click slot to upload</span>
+              <button
+                onClick={resetLayout}
+                className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
+              >
+                Reset_Layout
+              </button>
+            </div>
+
+            <div className="mt-4 lg:hidden">
               <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary/55">quick_controls</div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 {[
@@ -397,9 +421,9 @@ function StudioPage() {
                 ].map(([key, label]) => (
                   <button
                     key={key}
-                    onClick={() => setActivePanel(key as typeof activePanel)}
+                    onClick={() => setActiveMobilePanel(key as typeof activeMobilePanel)}
                     className={`rounded border px-2 py-2 font-mono text-[10px] uppercase tracking-[0.15em] transition-all ${
-                      activePanel === key ? "border-primary bg-primary/10 text-primary neon-glow" : "border-primary/15 text-primary/55"
+                      activeMobilePanel === key ? "border-primary bg-primary/10 text-primary neon-glow" : "border-primary/15 text-primary/55"
                     }`}
                   >
                     {label}
@@ -407,43 +431,12 @@ function StudioPage() {
                 ))}
               </div>
             </div>
-
-            {/* Slot hint + reset */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
-              <span>drag slots · corner = resize · click slot to upload</span>
-              <button
-                onClick={resetLayout}
-                className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
-              >
-                Reset_Layout
-              </button>
-            </div>
-
-            {/* Frame strip — gated behind 02 FRAME button */}
-            {activePanel === "frame" && (
-              <FrameStrip
-                frames={framesForRatio}
-                activeFrameId={frameId}
-                onPickFrame={setFrameId}
-                onPickCustomFrame={onPickCustomFrame}
-                hasCustom={!!customFrame && customFrame.ratio === ratio}
-                hue={frameHue}
-                sat={frameSat}
-                onPickTint={(h, s) => {
-                  setFrameHue(h);
-                  setFrameSat(s);
-                }}
-                onHueChange={setFrameHue}
-                onSatChange={setFrameSat}
-              />
-            )}
-
           </div>
         </div>
 
         {/* CONTROLS */}
         <aside className="space-y-5">
-          <Panel title="01 · Ratio & Layout" mobileActive={activePanel === "layout"}>
+          <Panel title="01 · Ratio & Layout" mobileActive={activeMobilePanel === "layout"}>
             <div className="grid grid-cols-3 gap-2">
               {RATIOS.map((r) => (
                 <button
@@ -474,8 +467,34 @@ function StudioPage() {
             </div>
           </Panel>
 
+          <Panel title="02 · Frame" mobileActive={activeMobilePanel === "frame"}>
+            <div className="grid grid-cols-3 gap-2">
+              {framesForRatio.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setFrameId(f.id)}
+                  className={`group relative overflow-hidden rounded border text-[9px] font-mono uppercase tracking-wider transition-all ${
+                    frameId === f.id ? "border-primary neon-glow" : "border-primary/15 hover:border-primary/40"
+                  }`}
+                  style={{ aspectRatio: `${f.ratio.split(":")[0]} / ${f.ratio.split(":")[1]}` }}
+                  title={f.name}
+                >
+                  <img src={f.src} alt={f.name} className="absolute inset-0 size-full bg-muted object-cover" />
+                  <span className="absolute bottom-0 left-0 right-0 bg-background/80 px-1 py-0.5 text-primary/80 truncate">
+                    {f.kind === "custom" ? "CUSTOM" : f.ratio}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <Slider label={`Hue ${frameHue}°`} min={0} max={360} value={frameHue} onChange={setFrameHue} />
+            <Slider label={`Saturation ${frameSat}%`} min={0} max={100} value={frameSat} onChange={setFrameSat} />
+            <label className="block cursor-pointer rounded border border-dashed border-primary/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70 hover:bg-primary/5">
+              <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)} />
+              Upload_Custom_Frame
+            </label>
+          </Panel>
 
-          <Panel title="03 · Pattern" mobileActive={activePanel === "pattern"}>
+          <Panel title="03 · Pattern" mobileActive={activeMobilePanel === "pattern"}>
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => setPatternId(null)}
@@ -509,7 +528,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="04 · Logo" mobileActive={activePanel === "logo"}>
+          <Panel title="04 · Logo" mobileActive={activeMobilePanel === "logo"}>
             <label className="block cursor-pointer rounded border border-dashed border-primary/30 px-3 py-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70 hover:bg-primary/5">
               <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickLogo(e.target.files?.[0] ?? null)} />
               {logoUrl ? "Replace_Logo" : "Upload_Logo"}
@@ -524,7 +543,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="05 · Caption" mobileActive={activePanel === "caption"}>
+          <Panel title="05 · Caption" mobileActive={activeMobilePanel === "caption"}>
             <input
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
@@ -568,7 +587,7 @@ function StudioPage() {
             )}
           </Panel>
 
-          <Panel title="06 · Export" mobileActive={activePanel === "export"}>
+          <Panel title="06 · Export" mobileActive={activeMobilePanel === "export"}>
             <select
               value={presetId}
               onChange={(e) => setPresetId(e.target.value as OutputPresetId)}
@@ -811,8 +830,6 @@ function FrameStrip({
   hue,
   sat,
   onPickTint,
-  onHueChange,
-  onSatChange,
 }: {
   frames: Frame[];
   activeFrameId: string;
@@ -822,14 +839,12 @@ function FrameStrip({
   hue: number;
   sat: number;
   onPickTint: (hue: number, sat: number) => void;
-  onHueChange: (v: number) => void;
-  onSatChange: (v: number) => void;
 }) {
   const activeTintId = TINT_PRESETS.find((t) => t.hue === hue && t.sat === sat)?.id;
 
   return (
     <div className="mt-4 rounded border border-primary/20 bg-background/40 p-3">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary/70">
           frames · tap to preview · upload your own
         </div>
@@ -838,98 +853,94 @@ function FrameStrip({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* LEFT: frame tiles + upload */}
-        <div className="flex flex-wrap gap-2">
-          {frames.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => onPickFrame(f.id)}
-              className={`group relative shrink-0 overflow-hidden rounded border-2 transition-all ${
-                activeFrameId === f.id
-                  ? "border-primary neon-glow scale-105"
-                  : "border-primary/15 hover:border-primary/50"
+      {/* Frames row */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {frames.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => onPickFrame(f.id)}
+            className={`group relative shrink-0 overflow-hidden rounded border-2 transition-all ${
+              activeFrameId === f.id
+                ? "border-primary neon-glow scale-105"
+                : "border-primary/15 hover:border-primary/50"
+            }`}
+            style={{
+              width: 88,
+              aspectRatio: `${f.ratio.split(":")[0]} / ${f.ratio.split(":")[1]}`,
+            }}
+            title={f.name}
+          >
+            <img src={f.src} alt={f.name} className="absolute inset-0 size-full bg-muted object-cover" />
+            {sat > 0 && (
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background: `hsl(${hue}, ${sat}%, 50%)`,
+                  mixBlendMode: "multiply",
+                }}
+              />
+            )}
+            <span className="absolute inset-x-0 bottom-0 bg-background/85 px-1 py-0.5 text-center font-mono text-[8px] uppercase tracking-wider text-primary/80">
+              {f.kind === "custom" ? "CUSTOM" : f.ratio}
+            </span>
+          </button>
+        ))}
+
+        {/* Upload custom frame tile */}
+        <label
+          className="group relative flex shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-primary/40 bg-background/60 text-primary/70 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
+          style={{ width: 88, aspectRatio: "1 / 1" }}
+          title="Upload your own frame (PNG with transparency recommended)"
+        >
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)}
+          />
+          <span className="text-2xl leading-none">+</span>
+          <span className="px-1 text-center font-mono text-[8px] uppercase tracking-wider">
+            {hasCustom ? "Replace" : "Upload"}
+          </span>
+          <span className="px-1 text-center font-mono text-[7px] uppercase tracking-wider text-primary/40">
+            PNG · custom
+          </span>
+        </label>
+      </div>
+
+      {/* Tint presets */}
+      <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
+        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-primary/50">
+          tint:
+        </span>
+        {TINT_PRESETS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => onPickTint(t.hue, t.sat)}
+            className={`group flex shrink-0 flex-col items-center gap-1 transition-transform hover:scale-110 ${
+              activeTintId === t.id ? "scale-110" : ""
+            }`}
+            title={t.label}
+          >
+            <span
+              className={`block size-7 rounded-full border-2 transition-all ${
+                activeTintId === t.id ? "border-primary neon-glow" : "border-primary/20"
               }`}
               style={{
-                width: 88,
-                aspectRatio: `${f.ratio.split(":")[0]} / ${f.ratio.split(":")[1]}`,
+                background: t.id === "none" ? "transparent" : t.swatch,
+                backgroundImage:
+                  t.id === "none"
+                    ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%)"
+                    : undefined,
+                backgroundSize: t.id === "none" ? "8px 8px" : undefined,
               }}
-              title={f.name}
-            >
-              <img src={f.src} alt={f.name} className="absolute inset-0 size-full bg-muted object-cover" />
-              {sat > 0 && (
-                <div
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    background: `hsl(${hue}, ${sat}%, 50%)`,
-                    mixBlendMode: "multiply",
-                  }}
-                />
-              )}
-              <span className="absolute inset-x-0 bottom-0 bg-background/85 px-1 py-0.5 text-center font-mono text-[8px] uppercase tracking-wider text-primary/80">
-                {f.kind === "custom" ? "CUSTOM" : f.ratio}
-              </span>
-            </button>
-          ))}
-
-          <label
-            className="group relative flex shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-primary/40 bg-background/60 text-primary/70 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
-            style={{ width: 88, aspectRatio: "1 / 1" }}
-            title="Upload your own frame (PNG with transparency recommended)"
-          >
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="hidden"
-              onChange={(e) => onPickCustomFrame(e.target.files?.[0] ?? null)}
             />
-            <span className="text-2xl leading-none">+</span>
-            <span className="px-1 text-center font-mono text-[8px] uppercase tracking-wider">
-              {hasCustom ? "Replace" : "Upload"}
+            <span className="font-mono text-[8px] uppercase tracking-wider text-primary/60">
+              {t.label}
             </span>
-            <span className="px-1 text-center font-mono text-[7px] uppercase tracking-wider text-primary/40">
-              PNG · custom
-            </span>
-          </label>
-        </div>
-
-        {/* RIGHT: tint swatches + hue/sat sliders */}
-        <div className="space-y-3">
-          <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-primary/50">tint</div>
-          <div className="grid grid-cols-7 gap-2">
-            {TINT_PRESETS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => onPickTint(t.hue, t.sat)}
-                className={`flex flex-col items-center gap-1 transition-transform hover:scale-110 ${
-                  activeTintId === t.id ? "scale-110" : ""
-                }`}
-                title={t.label}
-              >
-                <span
-                  className={`block size-7 rounded-full border-2 transition-all ${
-                    activeTintId === t.id ? "border-primary neon-glow" : "border-primary/20"
-                  }`}
-                  style={{
-                    background: t.id === "none" ? "transparent" : t.swatch,
-                    backgroundImage:
-                      t.id === "none"
-                        ? "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%)"
-                        : undefined,
-                    backgroundSize: t.id === "none" ? "8px 8px" : undefined,
-                  }}
-                />
-                <span className="font-mono text-[8px] uppercase tracking-wider text-primary/60">
-                  {t.label}
-                </span>
-              </button>
-            ))}
-          </div>
-          <Slider label={`Hue ${hue}°`} min={0} max={360} value={hue} onChange={onHueChange} />
-          <Slider label={`Saturation ${sat}%`} min={0} max={100} value={sat} onChange={onSatChange} />
-        </div>
+          </button>
+        ))}
       </div>
     </div>
   );
 }
-
