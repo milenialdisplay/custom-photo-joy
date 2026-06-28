@@ -84,6 +84,9 @@ export async function renderToCanvas(
   const frame = findFrame(state);
   if (frame) {
     const fimg = await loadImage(frame.src);
+    const customAlpha = frame.kind === "custom" ? state.customFrameOpacity ?? 1 : 1;
+    ctx.save();
+    ctx.globalAlpha = customAlpha;
     // draw white frame
     ctx.drawImage(fimg, 0, 0, width, height);
     // apply hue/sat tint via multiply: a solid color layer composited only where frame is white
@@ -96,10 +99,9 @@ export async function renderToCanvas(
       tctx.globalCompositeOperation = "multiply";
       tctx.fillStyle = `hsl(${state.frameHue}, ${state.frameSat}%, 50%)`;
       tctx.fillRect(0, 0, width, height);
-      // composite tint back onto main canvas, but keep frame transparency rules:
-      // since frame is opaque white, just overwrite frame region with tinted version.
       ctx.drawImage(tintCanvas, 0, 0);
     }
+    ctx.restore();
   }
 
   // 3) pattern overlay (above frame, BELOW photos)
