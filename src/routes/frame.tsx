@@ -434,7 +434,11 @@ function StudioPage() {
                 activeFrameId={frameId}
                 onPickFrame={setFrameId}
                 onPickCustomFrame={onPickCustomFrame}
+                onRemoveCustomFrame={onRemoveCustomFrame}
                 hasCustom={!!customFrame && customFrame.ratio === ratio}
+                isCustomActive={!!customFrame && customFrame.id === frameId}
+                customOpacity={customFrameOpacity}
+                onCustomOpacityChange={setCustomFrameOpacity}
                 hue={frameHue}
                 sat={frameSat}
                 onPickTint={(h, s) => {
