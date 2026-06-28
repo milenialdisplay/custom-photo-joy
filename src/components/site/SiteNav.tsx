@@ -12,7 +12,6 @@ export function SiteNav() {
           <BrandLogo variant="dark" className="text-2xl md:text-3xl" />
         </Link>
         <div className="hidden gap-8 font-mono text-[11px] uppercase tracking-[0.2em] text-primary/60 md:flex">
-          <Link to="/snap" className="transition-colors hover:text-primary" activeProps={{ className: "text-primary" }}>/snap</Link>
           <Link to="/frame" className="transition-colors hover:text-primary" activeProps={{ className: "text-primary" }}>/frame</Link>
           <Link to="/printer" className="transition-colors hover:text-primary" activeProps={{ className: "text-primary" }}>/printer</Link>
           <Link to="/event" className="transition-colors hover:text-primary" activeProps={{ className: "text-primary" }}>/event</Link>
