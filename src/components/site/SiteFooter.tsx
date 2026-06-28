@@ -7,12 +7,9 @@ export function SiteFooter() {
         <div className="flex items-center gap-3">
           <span className="size-2 animate-blink rounded-full bg-primary" />
           <BrandLogo variant="dark" className="text-base md:text-lg" />
-          <span className="text-primary/30">SYSTEM_v.03</span>
         </div>
         <div className="flex gap-8 text-primary/40">
-          <a href="#" className="transition-colors hover:text-primary">Instagram</a>
-          <a href="#" className="transition-colors hover:text-primary">TikTok</a>
-          <a href="#" className="transition-colors hover:text-primary">Support</a>
+          <a href="#" className="transition-colors hover:text-primary">Contact Us</a>
         </div>
         <div className="text-primary/30">&copy; 2026 dpotopoto.com</div>
       </div>
