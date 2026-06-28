@@ -53,6 +53,7 @@ function StudioPage() {
   const [frameId, setFrameId] = useState<string>("white-1x1");
   const [frameHue, setFrameHue] = useState(0);
   const [frameSat, setFrameSat] = useState(0);
+  const [customFrameOpacity, setCustomFrameOpacity] = useState(1);
 
   // pattern
   const [patternId, setPatternId] = useState<string | null>(null);
