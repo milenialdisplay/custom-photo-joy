@@ -383,32 +383,8 @@ function StudioPage() {
               </div>
             </div>
 
-            {/* Prominent frame quick-picker */}
-            <FrameStrip
-              frames={framesForRatio}
-              activeFrameId={frameId}
-              onPickFrame={setFrameId}
-              onPickCustomFrame={onPickCustomFrame}
-              hasCustom={!!customFrame && customFrame.ratio === ratio}
-              hue={frameHue}
-              sat={frameSat}
-              onPickTint={(h, s) => {
-                setFrameHue(h);
-                setFrameSat(s);
-              }}
-            />
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
-              <span>drag slots · corner = resize · click slot to upload</span>
-              <button
-                onClick={resetLayout}
-                className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
-              >
-                Reset_Layout
-              </button>
-            </div>
-
-            <div className="mt-4 lg:hidden">
+            {/* Quick controls — directly below LIVE_PREVIEW */}
+            <div className="mt-4">
               <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary/55">quick_controls</div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 {[
@@ -421,9 +397,9 @@ function StudioPage() {
                 ].map(([key, label]) => (
                   <button
                     key={key}
-                    onClick={() => setActiveMobilePanel(key as typeof activeMobilePanel)}
+                    onClick={() => setActivePanel(key as typeof activePanel)}
                     className={`rounded border px-2 py-2 font-mono text-[10px] uppercase tracking-[0.15em] transition-all ${
-                      activeMobilePanel === key ? "border-primary bg-primary/10 text-primary neon-glow" : "border-primary/15 text-primary/55"
+                      activePanel === key ? "border-primary bg-primary/10 text-primary neon-glow" : "border-primary/15 text-primary/55"
                     }`}
                   >
                     {label}
@@ -431,6 +407,37 @@ function StudioPage() {
                 ))}
               </div>
             </div>
+
+            {/* Slot hint + reset */}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/60">
+              <span>drag slots · corner = resize · click slot to upload</span>
+              <button
+                onClick={resetLayout}
+                className="rounded border border-primary/30 px-3 py-1.5 text-primary/80 hover:bg-primary/10"
+              >
+                Reset_Layout
+              </button>
+            </div>
+
+            {/* Frame strip — gated behind 02 FRAME button */}
+            {activePanel === "frame" && (
+              <FrameStrip
+                frames={framesForRatio}
+                activeFrameId={frameId}
+                onPickFrame={setFrameId}
+                onPickCustomFrame={onPickCustomFrame}
+                hasCustom={!!customFrame && customFrame.ratio === ratio}
+                hue={frameHue}
+                sat={frameSat}
+                onPickTint={(h, s) => {
+                  setFrameHue(h);
+                  setFrameSat(s);
+                }}
+                onHueChange={setFrameHue}
+                onSatChange={setFrameSat}
+              />
+            )}
+
           </div>
         </div>
 
