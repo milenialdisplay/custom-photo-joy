@@ -377,6 +377,7 @@ function StudioPage() {
                     stageRef={stageRef}
                     minW={minSlotW}
                     minH={minSlotH}
+                    previewMode={previewMode}
                     onRectChange={(r) => setSlotRect(i, r)}
                     onPick={(f) => setSlotPhoto(i, f)}
                     onClear={() => clearSlotPhoto(i)}
