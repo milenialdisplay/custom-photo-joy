@@ -163,13 +163,28 @@ export async function renderToCanvas(
     ctx.fillText(cap.text, tx + tw / 2, ty + th / 2, tw * 0.95);
   }
 
-  // 6) logo
+  // 6) logo — preserve aspect ratio (object-contain), matching preview
   if (state.logoUrl) {
     const logo = await loadImage(state.logoUrl);
     const r = state.logoRect;
+    const boxX = r.x * width;
+    const boxY = r.y * height;
+    const boxW = r.w * width;
+    const boxH = r.h * height;
+    const ir = logo.width / logo.height;
+    const br = boxW / boxH;
+    let dw = boxW;
+    let dh = boxH;
+    if (ir > br) {
+      dh = boxW / ir;
+    } else {
+      dw = boxH * ir;
+    }
+    const dx = boxX + (boxW - dw) / 2;
+    const dy = boxY + (boxH - dh) / 2;
     ctx.save();
     ctx.globalAlpha = state.logoOpacity;
-    ctx.drawImage(logo, r.x * width, r.y * height, r.w * width, r.h * height);
+    ctx.drawImage(logo, dx, dy, dw, dh);
     ctx.restore();
   }
 
